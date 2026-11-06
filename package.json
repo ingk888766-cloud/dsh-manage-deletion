@@ -1,6 +1,6 @@
 {
   "name": "dsh-manage-deletion",
-  "version": "1.1.4",
+  "version": "1.2.0",
   "description": "dsh-Manage deletion：DSH 会话删除管理——侧栏会话行一键删除、工作区多选批量删、全会话扫描统一清理，删除统一进可恢复回收站（会话 + 工作区文件），支持全选/多选与恢复。",
   "type": "module",
   "main": "index.js",
