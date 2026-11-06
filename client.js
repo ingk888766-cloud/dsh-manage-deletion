@@ -346,8 +346,14 @@ window.__ModuleLoader__.load({
     }
 
     var CSS = [
-      '.__md_page{display:flex;flex-direction:column;gap:12px;max-width:980px;min-height:100%;padding:18px 20px;font-size:13px;color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-base);box-sizing:border-box}',
+      'html .__md_page{display:flex;flex-direction:column;gap:12px;max-width:980px;height:100%;overflow-y:auto;overflow-x:hidden;padding:18px 20px;font-size:13px;box-sizing:border-box;background:#ffffff;color:#1b1f27}',
+      'html[data-ds-dark-theme] .__md_page{background:#15181e;color:#e8eaf0}',
+      '.__md_page::-webkit-scrollbar{width:10px}',
+      '.__md_page::-webkit-scrollbar-thumb{background:rgba(128,128,128,.45);border-radius:6px}',
+      '.__md_sticky{position:sticky;top:-18px;z-index:3;display:flex;flex-direction:column;gap:10px;padding:18px 0 10px;background:inherit}',
       '.__md_head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}',
+      '.__md_headTitle{font-size:15px;font-weight:600;margin:0}',
+      '.__md_metaBar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:11px;color:#7a8290}',
       '.__md_title{font-size:15px;font-weight:600;margin:0}',
       '.__md_sub{margin:4px 0 0;font-size:12px;color:var(--dsw-alias-label-tertiary)}',
       '.__md_row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}',
@@ -359,16 +365,17 @@ window.__ModuleLoader__.load({
       '.__md_tabs{display:flex;gap:6px;border-bottom:1px solid var(--dsw-alias-border-l2);padding-bottom:6px}',
       '.__md_tab{border:none;background:none;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;padding:4px 10px;border-radius:8px;cursor:pointer}',
       '.__md_tabOn{background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary);font-weight:600}',
-      '.__md_list{border:1px solid var(--dsw-alias-border-l2);border-radius:10px;overflow:hidden}',
+      '.__md_list{border:1px solid #d9dee7;border-radius:10px;overflow:hidden;background:#fff}',
+      'html[data-ds-dark-theme] .__md_list{background:#1b1f27;border-color:#2a3140}',
       '.__md_line{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;padding:7px 10px;border-top:1px solid var(--dsw-alias-border-l2)}',
       '.__md_line:first-child{border-top:none}',
       '.__md_lineHead{font-size:11px;color:var(--dsw-alias-label-tertiary);background:var(--dsw-alias-bg-layer-2)}',
       '.__md_lineOn{background:color-mix(in srgb,var(--dsw-alias-state-business-primary) 8%,transparent)}',
       '.__md_item{min-width:0}',
-      '.__md_itemTitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
-      '.__md_itemMeta{font-size:11px;color:var(--dsw-alias-label-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+      '.__md_itemTitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:inherit}',
+      '.__md_itemMeta{font-size:11px;color:#7a8290;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
       '.__md_right{display:flex;align-items:center;gap:10px}',
-      '.__md_time{font-size:11px;color:var(--dsw-alias-label-tertiary);white-space:nowrap;min-width:64px;text-align:right}',
+      '.__md_time{font-size:11px;color:#7a8290;white-space:nowrap;min-width:64px;text-align:right}',
       '.__md_empty{padding:20px;text-align:center;color:var(--dsw-alias-label-tertiary);font-size:12px}',
       '.__md_notice{font-size:12px;color:var(--dsw-alias-label-secondary);white-space:pre-wrap}',
       '.__md_err{font-size:12px;color:var(--dsw-alias-state-error-primary,#f85149);white-space:pre-wrap}',
@@ -540,6 +547,7 @@ window.__ModuleLoader__.load({
       }
 
       return h('div', { className: '__md_page' },
+        h('div', { className: '__md_sticky' },
         h('div', { className: '__md_head' },
           h('div', null,
             h('p', { className: '__md_title' }, t('title')),
@@ -561,8 +569,8 @@ window.__ModuleLoader__.load({
           h('button', { type: 'button', className: '__md_tab' + (state.tab === 'sessions' ? ' __md_tabOn' : ''), onClick: function () { setStore({ tab: 'sessions' }); } }, t('tabSessions')),
           h('button', { type: 'button', className: '__md_tab' + (state.tab === 'trash' ? ' __md_tabOn' : ''), onClick: function () { setStore({ tab: 'trash' }); } }, t('tabTrash') + ' (' + (trash.entries.length || 0) + ')')
         ),
-
-        state.notice ? h('div', { className: '__md_notice' }, state.notice) : null,
+        h('div', { className: '__md_row' }, state.notice ? h('div', { className: '__md_notice' }, state.notice) : null),
+        ),
         state.error ? h('div', { className: '__md_err', role: 'alert' }, t('loadFailed') + ': ' + state.error) : null,
 
         state.tab === 'sessions' ? h(react.Fragment, null,

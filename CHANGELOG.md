@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.3] — 2026-11-06
+
+### Fixed
+
+- **页面不能滚动**：根容器改为 `height:100% + overflow-y:auto`，顶部工具条 sticky。
+- **背景透明**：壁纸主题下 `--dsw-alias-bg-base` 是透明的，页面改用自带不透明底（浅色 #fff / 深色 #15181e，按 `data-ds-dark-theme` 切换），列表与时间列显式配色。
+- **取日志失败时没有兜底**：`persistence.stat` 拿不到路径时，按会话目录直接找 `session.*.jsonl*` 再解码。
+
+### Added
+
+- `manage_deletion_files`（只读）：列出某会话自己写过/改过的文件，用来核对删除范围。
+
 ## [1.0.2] — 2026-11-06
 
 ### Fixed

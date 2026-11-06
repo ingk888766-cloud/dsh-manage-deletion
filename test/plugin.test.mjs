@@ -89,6 +89,7 @@ test('apply registers three tools and one exact route', () => {
   apply(ctx);
   assert.deepEqual(registeredTools.map((tool) => tool.name).sort(), [
     'manage_deletion_clean',
+    'manage_deletion_files',
     'manage_deletion_scan',
     'manage_deletion_trash'
   ]);
