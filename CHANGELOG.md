@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.8] — 2026-11-06
+
+### Changed
+
+- 简介改成口语：去掉“不再靠猜 / 一眼分清 / 秒开”这类腔调，改成直接说做了什么。
+- 顺手修正 README 里三处过时说明：置顶会话现在可删、工具参数是 deleteFiles/deleteExtraFiles、界面插槽列表去掉已不用的 sidebar.workspaces。
+
 ## [1.2.7] — 2026-11-06
 
 ### Changed
