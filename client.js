@@ -248,7 +248,7 @@ window.__ModuleLoader__.load({
       try {
         // Fast mode: the page reads titles from the live client session store,
         // so the host does not need to fold titles (the expensive part).
-        var data = await api('scan', { titles: false, force: force === true });
+        var data = await api('scan', { titles: false, lean: true, force: force === true });
         setStore({ scan: data, scanning: false, autoRan: true, limit: 50 });
         return data;
       } catch (error) {
