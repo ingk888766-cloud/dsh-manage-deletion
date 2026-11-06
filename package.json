@@ -61,5 +61,13 @@
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
     "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ingk888766-cloud/dsh-manage-deletion.git"
+  },
+  "homepage": "https://github.com/ingk888766-cloud/dsh-manage-deletion#readme",
+  "bugs": {
+    "url": "https://github.com/ingk888766-cloud/dsh-manage-deletion/issues"
   }
 }
