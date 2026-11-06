@@ -276,6 +276,11 @@ window.__ModuleLoader__.load({
       var list = (ids || []).filter(Boolean);
       if (list.length === 0) return;
       setStore({ pending: { ids: list, deleteFiles: true, deleteExtraFiles: false, info: null, files: [], otherFiles: [], loading: true } });
+      setTimeout(function () {
+        var current = store.get().pending;
+        if (!current || current.ids.join('|') !== list.join('|') || current.loading !== true) return;
+        setStore({ pending: Object.assign({}, current, { loading: false, infoError: '文件清单读取超时，可直接删除会话日志' }) });
+      }, 6000);
       api('info', { ids: list }).then(function (data) {
         var rows = data.sessions || [];
         var files = [];
@@ -429,6 +434,8 @@ window.__ModuleLoader__.load({
       '.__md_check{accent-color:var(--md-accent2);cursor:pointer;width:16px;height:16px;flex:none}',
       '.__md_iconBtn{border:none;background:rgba(32,40,54,.85);color:#8fa4c0;cursor:pointer;padding:6px;border-radius:11px;display:inline-flex;align-items:center;transition:color .18s,background .18s}',
       '.__md_iconBtn:hover{color:#f0a8a2;background:rgba(60,32,34,.9)}',
+      '.__md_menuItem{display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border:none;border-radius:9px;background:transparent;color:#e8eef8;font:inherit;font-size:12.5px;text-align:left;cursor:pointer}',
+      '.__md_menuItem:hover{background:rgba(63,107,181,.25)}',
       '.__md_mask,.__md_bar{--md-ink:#e8eef8;--md-ink2:#93a1b8;--md-card:rgba(23,28,38,.94);--md-card2:rgba(30,36,48,.92);--md-line:#243044;--md-accent:#3f6bb5;--md-accent2:#6f97d8;--md-accent-deep:#2b4a80;color:#e8eef8}',
       '.__md_mask{position:fixed;inset:0;background:rgba(3,7,12,.66);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:1000}',
       '.__md_dialog{width:min(560px,92vw);background:linear-gradient(180deg,#161c27,#111721);color:var(--md-ink);border:1px solid var(--md-line);border-radius:24px;padding:26px 28px;display:flex;flex-direction:column;gap:13px;',
@@ -469,6 +476,7 @@ window.__ModuleLoader__.load({
       var t = props.t;
       var id = props.sessionId;
       var state = useStore();
+      if (!id) return null;
       return h(react.Fragment, null,
         h('button', {
           type: 'button',
@@ -502,6 +510,25 @@ window.__ModuleLoader__.load({
     }
 
     // ── global confirm dialog ─────────────────────────────────────────────
+    function MenuDeleteItem(props) {
+      var t = props.t;
+      var id = props.sessionId;
+      if (!id) return null;
+      return h('button', {
+        type: 'button',
+        role: 'menuitem',
+        className: '__md_menuItem',
+        onClick: function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          openDeleteDialog([id]);
+          try {
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+          } catch (error) { /* some hosts close the menu themselves */ }
+        }
+      }, '🗑 ' + t('deleteOne'));
+    }
+
     function DialogHost(props) {
       var state = useStore();
       var t = props.t;
@@ -948,6 +975,13 @@ window.__ModuleLoader__.load({
         return ctx.slots.register({ name: 'sidebar.workspaces.session.row.action', id: 'manage-deletion.delete', order: 0, locale: NS }, function ActionHost(props) {
           useLocale(ctx.locale);
           return h(RowActions, { sessionId: props.sessionId, t: t });
+        });
+      });
+
+      ctx.slots.inject('sidebar.workspaces.session.menu.item', function () {
+        return ctx.slots.register({ name: 'sidebar.workspaces.session.menu.item', id: 'manage-deletion.menu', order: 0, locale: NS }, function MenuHost(props) {
+          useLocale(ctx.locale);
+          return h(MenuDeleteItem, { sessionId: props.sessionId, t: t });
         });
       });
 
