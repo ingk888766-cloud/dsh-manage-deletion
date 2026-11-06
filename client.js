@@ -159,7 +159,8 @@ window.__ModuleLoader__.load({
       notice: '',
       error: '',
       autoRan: false,
-      limit: 50
+      limit: 50,
+      toast: null
     });
 
     function useStore() {
@@ -327,7 +328,14 @@ window.__ModuleLoader__.load({
           lines.push(interp('失败 {n} 项：', { n: bad.length }));
           bad.slice(0, 5).forEach(function (row) { lines.push('· ' + (row.id || '') + ' — ' + (row.message || row.code || '')); });
         }
-        setStore({ busy: '', pending: null, notice: lines.join('\n'), selected: {} });
+        setStore({
+          busy: '',
+          pending: null,
+          notice: lines.join('\n'),
+          selected: {},
+          toast: { kind: 'ok', text: interp('已移入回收站 {n} 个，可在「删除管理 → 回收站」还原。侧栏列表刷新页面后同步。', { n: ok.length }) }
+        });
+        setTimeout(function () { setStore({ toast: null }); }, 8000);
         await runScan(true);
       } catch (error) {
         setStore({ busy: '', error: String(error && error.message ? error.message : error) });
@@ -434,6 +442,8 @@ window.__ModuleLoader__.load({
       '.__md_check{accent-color:var(--md-accent2);cursor:pointer;width:16px;height:16px;flex:none}',
       '.__md_iconBtn{border:none;background:rgba(32,40,54,.85);color:#8fa4c0;cursor:pointer;padding:6px;border-radius:11px;display:inline-flex;align-items:center;transition:color .18s,background .18s}',
       '.__md_iconBtn:hover{color:#f0a8a2;background:rgba(60,32,34,.9)}',
+      '.__md_toast{position:fixed;right:20px;bottom:20px;z-index:1200;max-width:min(420px,90vw);display:flex;flex-direction:column;gap:10px;padding:14px 16px;border-radius:16px;background:rgba(23,28,38,.97);border:1px solid #2c4472;box-shadow:0 18px 48px rgba(0,0,0,.55);color:#e8eef8;font-size:12.5px;line-height:1.6}',
+      '.__md_toastText{color:#dbe8fa}',
       '.__md_menuItem{display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border:none;border-radius:9px;background:transparent;color:#e8eef8;font:inherit;font-size:12.5px;text-align:left;cursor:pointer}',
       '.__md_menuItem:hover{background:rgba(63,107,181,.25)}',
       '.__md_mask,.__md_bar{--md-ink:#e8eef8;--md-ink2:#93a1b8;--md-card:rgba(23,28,38,.94);--md-card2:rgba(30,36,48,.92);--md-line:#243044;--md-accent:#3f6bb5;--md-accent2:#6f97d8;--md-accent-deep:#2b4a80;color:#e8eef8}',
@@ -926,6 +936,31 @@ window.__ModuleLoader__.load({
       );
     }
 
+    function ToastHost(props) {
+      var state = useStore();
+      var t = props.t;
+      var toast = state.toast;
+      if (!toast) return null;
+      return h('div', {
+        className: '__md_toast',
+        role: 'status'
+      },
+        h('div', { className: '__md_toastText' }, toast.text),
+        h('div', { className: '__md_row', style: { gap: 6 } },
+          h('button', {
+            type: 'button',
+            className: '__md_btn __md_btnSoft',
+            onClick: function () { try { window.location.reload(); } catch (error) { /* noop */ } }
+          }, '刷新列表'),
+          h('button', {
+            type: 'button',
+            className: '__md_btn',
+            onClick: function () { setStore({ toast: null }); }
+          }, '关闭')
+        )
+      );
+    }
+
     function PanelGlyph(props) {
       var size = props && props.size ? props.size : 16;
       return h('svg', { width: size, height: size, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' },
@@ -982,6 +1017,13 @@ window.__ModuleLoader__.load({
         return ctx.slots.register({ name: 'sidebar.workspaces.session.menu.item', id: 'manage-deletion.menu', order: 0, locale: NS }, function MenuHost(props) {
           useLocale(ctx.locale);
           return h(MenuDeleteItem, { sessionId: props.sessionId, t: t });
+        });
+      });
+
+      ctx.slots.inject('shell.overlay', function () {
+        return ctx.slots.register({ name: 'shell.overlay', id: 'manage-deletion.toast', locale: NS }, function ToastHostBound() {
+          useLocale(ctx.locale);
+          return h(ToastHost, { t: t });
         });
       });
 

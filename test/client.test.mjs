@@ -111,7 +111,8 @@ test('apply registers the sidebar row, main page, row hooks and dialog', () => {
   assert.equal(byName('sidebar.workspaces').length, 0, 'never takes the workspace list seat');
   assert.equal(byName('sidebar.session.row.leading').length, 1, 'row checkbox');
   assert.equal(byName('sidebar.workspaces.session.row.action').length, 1, 'row delete button');
-  assert.equal(byName('shell.overlay').length, 2, 'confirm dialog + select bar');
+  assert.equal(byName('sidebar.workspaces.session.menu.item').length, 1, 'context-menu delete');
+  assert.equal(byName('shell.overlay').length, 3, 'confirm dialog + select bar + toast');
 });
 
 test('the main page renders one panel without throwing', () => {
