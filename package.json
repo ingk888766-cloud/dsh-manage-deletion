@@ -1,0 +1,65 @@
+{
+  "name": "dsh-manage-deletion",
+  "version": "1.0.0",
+  "description": "dsh-Manage deletion：DSH 会话删除管理——侧栏会话行一键删除、工作区多选批量删、全会话扫描统一清理，删除统一进可恢复回收站（会话 + 工作区文件），支持全选/多选与恢复。",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "lib",
+    "cordis.patch.yml",
+    "icon.svg",
+    "README.md",
+    "README.en.md",
+    "CHANGELOG.md",
+    "PUBLISH.md",
+    "LICENSE"
+  ],
+  "icon": "./icon.svg",
+  "dsh": {
+    "manifestVersion": 1,
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    },
+    "compatibility": {
+      "dsh": ">=0.2.0-rc.2 <0.3.0",
+      "node": ">=22.19",
+      "profiles": [
+        "web",
+        "desktop"
+      ]
+    }
+  },
+  "engines": {
+    "node": ">=22.19"
+  },
+  "scripts": {
+    "test": "node scripts/test.mjs",
+    "check": "node --check index.js && node --check client.js && npm run test",
+    "prepack": "node scripts/check-pack.mjs"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "session",
+    "delete",
+    "cleanup",
+    "trash",
+    "recycle-bin"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  }
+}

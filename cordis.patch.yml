@@ -1,0 +1,7 @@
+# dsh-manage-deletion — bundle patch layer
+#
+# Makes the package a standard DSH profile bundle:
+#   dsh plugin --profile <p> add dsh-manage-deletion
+- insert:
+    - id: manage-deletion
+      name: 'dsh-manage-deletion'
