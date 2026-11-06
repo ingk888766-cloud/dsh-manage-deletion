@@ -1,16 +1,15 @@
 /**
  * dsh-manage-deletion — browser half.
  *
- * 1. A main page (侧栏「删除管理」) that scans every session, lists them like the
- *    sidebar (title … time), and deletes in bulk.
- * 2. Session-row integrations: a hover trash button on every row, and a leading
- *    checkbox while multi-select mode is on.
- * 3. A select toolbar above the workspace list: 多选 / 全选 / 删除选中.
- * 4. One global confirm dialog (shell.overlay): 删除 / 放弃删除, plus the
- *    「同时删除工作区文件」 opt-in.
+ * Slots used (all list/keyed seats that the host bundles declare):
+ *   main                                → the manager page
+ *   sidebar.panellist (id, order, label) → the「删除管理」row
+ *   sidebar.session.row.leading          → checkbox while selecting
+ *   sidebar.workspaces.session.row.action→ hover delete + select toggle
+ *   shell.overlay                        → the confirm dialog
  *
- * Everything destructive goes through the host route and lands in the plugin
- * trash; the page has a 回收站 tab with select-all, restore and永久删除.
+ * `sidebar.workspaces` is deliberately NOT used: it is a single-occupant seat,
+ * and taking it hides the official workspace list.
  */
 window.__ModuleLoader__.load({
   id: 'dsh-manage-deletion',
@@ -26,16 +25,14 @@ window.__ModuleLoader__.load({
     var PANEL_ID = 'manage-deletion';
     var API = '/manage-deletion';
 
-    // ── dictionaries ──────────────────────────────────────────────────────
     var zh = {
       label: '删除管理',
       title: '删除管理',
-      subtitle: '扫描全部会话，勾选后统一删除；删除一律进回收站，可恢复会话与工作区文件。',
+      subtitle: '扫描全部会话，勾选后统一删除；会话日志与它自己产生并修改过的文件一起进回收站，可恢复。',
       tabSessions: '会话',
       tabTrash: '回收站',
       scan: '快速扫描',
       scanning: '扫描中…',
-      autoScanned: '已扫描',
       total: '会话',
       listed: '列出',
       trashCount: '回收站',
@@ -43,16 +40,17 @@ window.__ModuleLoader__.load({
       selectAll: '全选',
       clearAll: '取消全选',
       deleteSelected: '删除选中',
-      restoreSelected: '恢复选中',
+      restoreSelected: '恢复',
       purgeSelected: '彻底删除',
       cancel: '取消',
-      selectedN: '已选 {n}',
       deleteOne: '删除会话',
+      selectToggle: '多选',
       dialogTitle: '删除会话',
-      dialogBody: '将删除 {n} 个会话，日志与缓存一起进入回收站，可在「删除管理 → 回收站」恢复。',
-      dialogWorkspace: '同时删除工作区文件',
-      dialogWorkspaceHint: '把会话所在的工作区文件夹一并移到回收站（仅当该文件夹里没有其他会话时可用）。',
-      dialogWorkspaceBlocked: '该工作区还有 {n} 个其他会话，不能连文件夹一起删。',
+      dialogBody: '将删除 {n} 个会话：日志与下面这些文件一起移到回收站，可在「删除管理 → 回收站」恢复。',
+      dialogFiles: '同时删除这些会话产生的文件',
+      dialogFilesHint: '只包含这些会话自己写过或改过的文件（都在各自会话的工作目录内）；不会动工作区里其他文件。',
+      dialogNoFiles: '没有扫描到这些会话写过的文件。',
+      dialogBlocked: '{n} 个文件不在会话工作目录内，已被排除。',
       confirmDelete: '删除',
       giveUp: '放弃删除',
       deleted: '已删除 {n} 个会话，进入回收站。',
@@ -63,32 +61,26 @@ window.__ModuleLoader__.load({
       trashEmpty: '回收站是空的。',
       time: '时间',
       size: '大小',
-      workspace: '工作区',
       junk: '可清理',
-      blank: '空会话',
-      subagent: '子代理',
-      testTitle: '测试标题',
-      orphan: '目录不存在',
-      tinyOld: '很小且很久没动',
-      filterAll: '全部',
-      filterJunk: '仅可清理',
       colTitle: '会话',
       colTime: '时间',
       noTitle: '（无标题）',
       unregistered: '未登记工作区',
       loadFailed: '读取失败',
-      confirmPurge: '彻底删除会丢弃回收站里的日志与工作区副本，无法恢复。确定删除 {n} 项？',
-      scanHint: '按会话时间倒序排列；点「多选」后可勾选、全选。'
+      confirmPurge: '彻底删除会丢弃回收站里的日志与文件副本，无法恢复。确定删除 {n} 项？',
+      scanHint: '按会话时间倒序；点「多选」后可勾选、全选。',
+      more: '加载更多',
+      filesBadge: '{n} 个文件',
+      restoredFiles: '恢复 {n} 个文件'
     };
     var en = {
       label: 'Deletion manager',
       title: 'Deletion manager',
-      subtitle: 'Scan every session, select, and delete together. Deletes go to a restorable trash (sessions and workspace files).',
+      subtitle: 'Scan every session, select and delete together. Logs and the files each session wrote move to a restorable trash.',
       tabSessions: 'Sessions',
       tabTrash: 'Trash',
       scan: 'Scan',
       scanning: 'Scanning…',
-      autoScanned: 'Scanned',
       total: 'Sessions',
       listed: 'Listed',
       trashCount: 'Trash',
@@ -99,13 +91,14 @@ window.__ModuleLoader__.load({
       restoreSelected: 'Restore',
       purgeSelected: 'Delete forever',
       cancel: 'Cancel',
-      selectedN: '{n} selected',
       deleteOne: 'Delete session',
+      selectToggle: 'Select',
       dialogTitle: 'Delete session',
-      dialogBody: 'Delete {n} session(s). Logs and caches move to the plugin trash and can be restored from Deletion manager → Trash.',
-      dialogWorkspace: 'Also delete workspace files',
-      dialogWorkspaceHint: 'Move the session folder to the trash as well (only when no other session lives in it).',
-      dialogWorkspaceBlocked: 'That workspace still holds {n} other session(s); its folder cannot go with this delete.',
+      dialogBody: 'Delete {n} session(s): the logs and the files listed below move to the trash and can be restored.',
+      dialogFiles: 'Also delete the files these sessions wrote',
+      dialogFilesHint: 'Only files these sessions created or edited inside their own working directory. Nothing else in the workspace is touched.',
+      dialogNoFiles: 'No files were found for these sessions.',
+      dialogBlocked: '{n} file(s) outside the session directory were excluded.',
       confirmDelete: 'Delete',
       giveUp: 'Give up',
       deleted: '{n} session(s) deleted into the trash.',
@@ -116,25 +109,19 @@ window.__ModuleLoader__.load({
       trashEmpty: 'The trash is empty.',
       time: 'Time',
       size: 'Size',
-      workspace: 'Workspace',
       junk: 'Cleanable',
-      blank: 'Blank',
-      subagent: 'Subagent',
-      testTitle: 'Test title',
-      orphan: 'Missing cwd',
-      tinyOld: 'Tiny & old',
-      filterAll: 'All',
-      filterJunk: 'Cleanable only',
       colTitle: 'Session',
       colTime: 'Time',
       noTitle: '(untitled)',
       unregistered: 'unregistered workspace',
       loadFailed: 'Load failed',
-      confirmPurge: 'Permanent delete drops the trashed logs and workspace copies. Delete {n} item(s)?',
-      scanHint: 'Newest first. Turn on Select to tick rows or select all.'
+      confirmPurge: 'Permanent delete drops the trashed logs and file copies. Delete {n} item(s)?',
+      scanHint: 'Newest first. Turn on Select to tick rows or select all.',
+      more: 'Load more',
+      filesBadge: '{n} files',
+      restoredFiles: '{n} files restored'
     };
 
-    // ── tiny store ────────────────────────────────────────────────────────
     function createStore(initial) {
       var state = initial;
       var listeners = new Set();
@@ -162,12 +149,12 @@ window.__ModuleLoader__.load({
       busy: '',
       notice: '',
       error: '',
-      autoRan: false
+      autoRan: false,
+      limit: 100
     });
 
     function useStore() {
-      var pair = react.useState(0);
-      var bump = pair[1];
+      var bump = react.useState(0)[1];
       react.useEffect(function () {
         return store.subscribe(function () { bump(function (v) { return v + 1; }); });
       }, []);
@@ -175,7 +162,6 @@ window.__ModuleLoader__.load({
     }
     function setStore(patch) { store.set(patch); }
 
-    // ── helpers ───────────────────────────────────────────────────────────
     function fmtBytes(n) {
       var v = typeof n === 'number' && isFinite(n) ? n : 0;
       if (v < 1024) return v + ' B';
@@ -219,8 +205,6 @@ window.__ModuleLoader__.load({
       return data;
     }
 
-    // Live client-side session rows (title, updatedAt) — the same rows the
-    // sidebar shows, so titles never disagree between the two surfaces.
     var sessionRows = null;
     function readSessionRows(ctx) {
       try {
@@ -228,7 +212,7 @@ window.__ModuleLoader__.load({
         if (sessions && sessions.list && typeof sessions.list.getSnapshot === 'function') {
           sessionRows = sessions.list.getSnapshot().byId || {};
         }
-      } catch (error) { /* leave the previous map */ }
+      } catch (error) { /* keep the previous map */ }
       return sessionRows || {};
     }
     function titleOf(ctx, id) {
@@ -246,8 +230,7 @@ window.__ModuleLoader__.load({
     function selectionCount(state) { return Object.keys(state.selected).length; }
 
     function toggleId(id) {
-      var state = store.get();
-      var next = Object.assign({}, state.selected);
+      var next = Object.assign({}, store.get().selected);
       if (next[id]) delete next[id]; else next[id] = true;
       setStore({ selected: next });
     }
@@ -258,11 +241,13 @@ window.__ModuleLoader__.load({
     }
     function clearSelected() { setStore({ selected: {} }); }
 
-    async function runScan() {
+    async function runScan(force) {
       setStore({ scanning: true, error: '' });
       try {
-        var data = await api('scan');
-        setStore({ scan: data, scanning: false, autoRan: true });
+        // Fast mode: the page reads titles from the live client session store,
+        // so the host does not need to fold titles (the expensive part).
+        var data = await api('scan', { titles: false, force: force === true });
+        setStore({ scan: data, scanning: false, autoRan: true, limit: 100 });
         return data;
       } catch (error) {
         setStore({ scanning: false, error: String(error && error.message ? error.message : error) });
@@ -273,15 +258,24 @@ window.__ModuleLoader__.load({
     function openDeleteDialog(ids) {
       var list = (ids || []).filter(Boolean);
       if (list.length === 0) return;
-      setStore({ pending: { ids: list, deleteWorkspace: false, info: null } });
+      setStore({ pending: { ids: list, deleteFiles: true, info: null, files: [], blocked: 0 } });
       api('info', { ids: list }).then(function (data) {
         var rows = data.sessions || [];
-        var blocked = rows.some(function (row) { return !row.canDeleteWorkspace; });
-        var others = rows.reduce(function (max, row) { return Math.max(max, row.otherSessions || 0); }, 0);
+        var files = [];
+        for (var i = 0; i < rows.length; i += 1) {
+          var rowFiles = rows[i].files || [];
+          for (var j = 0; j < rowFiles.length; j += 1) files.push(rowFiles[j]);
+        }
         var current = store.get().pending;
         if (!current || current.ids.join('|') !== list.join('|')) return;
-        setStore({ pending: Object.assign({}, current, { info: rows, workspaceBlocked: blocked, others: others }) });
-      }).catch(function () { /* dialog still works without size facts */ });
+        setStore({
+          pending: Object.assign({}, current, {
+            info: rows,
+            files: files,
+            deleteFiles: files.length > 0
+          })
+        });
+      }).catch(function () { /* dialog still works without the file list */ });
     }
 
     async function doDelete() {
@@ -289,7 +283,7 @@ window.__ModuleLoader__.load({
       if (!pending) return;
       setStore({ busy: 'delete', error: '' });
       try {
-        var data = await api('trash', { ids: pending.ids, deleteWorkspace: pending.deleteWorkspace === true });
+        var data = await api('trash', { ids: pending.ids, deleteFiles: pending.deleteFiles === true });
         var results = data.results || [];
         var ok = results.filter(function (row) { return row.ok; });
         var bad = results.filter(function (row) { return !row.ok; });
@@ -299,7 +293,7 @@ window.__ModuleLoader__.load({
           bad.slice(0, 5).forEach(function (row) { lines.push('· ' + (row.id || '') + ' — ' + (row.message || row.code || '')); });
         }
         setStore({ busy: '', pending: null, notice: lines.join('\n'), selected: {} });
-        await runScan();
+        await runScan(true);
       } catch (error) {
         setStore({ busy: '', error: String(error && error.message ? error.message : error) });
       }
@@ -318,7 +312,7 @@ window.__ModuleLoader__.load({
         var data = await api('purge', { trashIds: pending.trashIds, confirm: true });
         var ok = (data.results || []).filter(function (row) { return row.ok; });
         setStore({ busy: '', pending: null, notice: interp('已彻底删除 {n} 项。', { n: ok.length }), trashSelected: {} });
-        await runScan();
+        await runScan(true);
       } catch (error) {
         setStore({ busy: '', error: String(error && error.message ? error.message : error) });
       }
@@ -329,21 +323,22 @@ window.__ModuleLoader__.load({
       setStore({ busy: 'restore', error: '' });
       try {
         var data = await api('restore', { trashIds: trashIds });
-        var ok = (data.results || []).filter(function (row) { return row.ok; });
-        var bad = (data.results || []).filter(function (row) { return !row.ok; });
-        var lines = [interp('已恢复 {n} 个会话。', { n: ok.length })];
+        var results = data.results || [];
+        var ok = results.filter(function (row) { return row.ok; });
+        var bad = results.filter(function (row) { return !row.ok; });
+        var files = results.reduce(function (sum, row) { return sum + (row.restoredFiles || 0); }, 0);
+        var lines = [interp('已恢复 {n} 个会话。', { n: ok.length }) + (files > 0 ? '（含 ' + interp('恢复 {n} 个文件', { n: files }) + '）' : '')];
         if (bad.length > 0) {
           lines.push(interp('失败 {n} 项：', { n: bad.length }));
           bad.slice(0, 5).forEach(function (row) { lines.push('· ' + (row.sessionId || row.trashId) + ' — ' + (row.message || '')); });
         }
         setStore({ busy: '', notice: lines.join('\n'), trashSelected: {} });
-        await runScan();
+        await runScan(true);
       } catch (error) {
         setStore({ busy: '', error: String(error && error.message ? error.message : error) });
       }
     }
 
-    // ── shared styles ─────────────────────────────────────────────────────
     var CSS = [
       '.__md_page{display:flex;flex-direction:column;gap:12px;max-width:980px;padding:18px 20px;font-size:13px;color:var(--dsw-alias-label-primary)}',
       '.__md_head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}',
@@ -355,15 +350,11 @@ window.__ModuleLoader__.load({
       '.__md_btn:disabled{opacity:.45;cursor:default}',
       '.__md_btnPrimary{border-color:var(--dsw-alias-state-business-primary,#3964fe);background:var(--dsw-alias-state-business-primary,#3964fe);color:#fff}',
       '.__md_btnDanger{border-color:var(--dsw-alias-state-error-primary,#f85149);color:var(--dsw-alias-state-error-primary,#f85149)}',
-      '.__md_btnGhost{border-color:transparent;background:transparent;color:var(--dsw-alias-label-secondary)}',
-      '.__md_chips{display:flex;gap:6px;flex-wrap:wrap}',
-      '.__md_chip{border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-secondary);border-radius:999px;padding:2px 10px;font:inherit;font-size:11px;cursor:pointer}',
-      '.__md_chipOn{border-color:var(--dsw-alias-state-business-primary);color:var(--dsw-alias-state-business-primary)}',
       '.__md_tabs{display:flex;gap:6px;border-bottom:1px solid var(--dsw-alias-border-l2);padding-bottom:6px}',
       '.__md_tab{border:none;background:none;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;padding:4px 10px;border-radius:8px;cursor:pointer}',
       '.__md_tabOn{background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary);font-weight:600}',
       '.__md_list{border:1px solid var(--dsw-alias-border-l2);border-radius:10px;overflow:hidden}',
-      '.__md_line{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;padding:7px 10px;border-top:1px solid var(--dsw-alias-border-l2);cursor:default}',
+      '.__md_line{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;padding:7px 10px;border-top:1px solid var(--dsw-alias-border-l2)}',
       '.__md_line:first-child{border-top:none}',
       '.__md_lineHead{font-size:11px;color:var(--dsw-alias-label-tertiary);background:var(--dsw-alias-bg-layer-2)}',
       '.__md_lineOn{background:color-mix(in srgb,var(--dsw-alias-state-business-primary) 8%,transparent)}',
@@ -372,26 +363,21 @@ window.__ModuleLoader__.load({
       '.__md_itemMeta{font-size:11px;color:var(--dsw-alias-label-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
       '.__md_right{display:flex;align-items:center;gap:10px}',
       '.__md_time{font-size:11px;color:var(--dsw-alias-label-tertiary);white-space:nowrap;min-width:64px;text-align:right}',
-      '.__md_size{font-size:11px;color:var(--dsw-alias-label-tertiary);white-space:nowrap;min-width:56px;text-align:right}',
-      '.__md_badges{display:flex;gap:4px;flex-wrap:wrap}',
-      '.__md_badge{border:1px solid var(--dsw-alias-border-l2);border-radius:999px;padding:0 6px;font-size:10px;color:var(--dsw-alias-label-secondary);white-space:nowrap}',
       '.__md_empty{padding:20px;text-align:center;color:var(--dsw-alias-label-tertiary);font-size:12px}',
       '.__md_notice{font-size:12px;color:var(--dsw-alias-label-secondary);white-space:pre-wrap}',
       '.__md_err{font-size:12px;color:var(--dsw-alias-state-error-primary,#f85149);white-space:pre-wrap}',
       '.__md_check{accent-color:var(--dsw-alias-state-business-primary);cursor:pointer}',
-      '.__md_toolbar{display:flex;align-items:center;gap:6px;padding:4px 8px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-2);font-size:11px;color:var(--dsw-alias-label-secondary)}',
-      '.__md_toolbarBtn{border:none;background:none;color:inherit;font:inherit;cursor:pointer;padding:2px 6px;border-radius:6px}',
-      '.__md_toolbarBtn:hover{background:var(--dsw-alias-interactive-bg-hover)}',
       '.__md_iconBtn{border:none;background:none;color:var(--dsw-alias-label-tertiary);cursor:pointer;padding:2px;border-radius:6px;display:inline-flex;align-items:center}',
       '.__md_iconBtn:hover{color:var(--dsw-alias-state-error-primary,#f85149);background:var(--dsw-alias-interactive-bg-hover)}',
       '.__md_mask{position:fixed;inset:0;background:var(--dsw-alias-bg-mask-1,rgba(0,0,0,.45));display:flex;align-items:center;justify-content:center;z-index:1000}',
-      '.__md_dialog{width:min(460px,92vw);background:var(--dsw-alias-bg-layer-1,#fff);color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;box-shadow:0 18px 48px rgba(0,0,0,.28)}',
+      '.__md_dialog{width:min(520px,92vw);background:var(--dsw-alias-bg-layer-1,#fff);color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;box-shadow:0 18px 48px rgba(0,0,0,.28)}',
       '.__md_dialogTitle{font-size:14px;font-weight:600;margin:0}',
       '.__md_dialogBody{font-size:12px;color:var(--dsw-alias-label-secondary);white-space:pre-wrap;margin:0}',
-      '.__md_dialogList{max-height:140px;overflow:auto;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;padding:6px 8px;font-size:12px}',
+      '.__md_dialogList{max-height:150px;overflow:auto;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;padding:6px 8px;font-size:12px}',
       '.__md_dialogList div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
       '.__md_opt{display:flex;gap:8px;align-items:flex-start;font-size:12px}',
-      '.__md_hint{font-size:11px;color:var(--dsw-alias-label-tertiary)}'
+      '.__md_hint{font-size:11px;color:var(--dsw-alias-label-tertiary)}',
+      '.__md_files{margin:0;padding-left:16px;font-size:11px;color:var(--dsw-alias-label-tertiary);max-height:110px;overflow:auto}'
     ].join('');
 
     function installStyles() {
@@ -402,85 +388,59 @@ window.__ModuleLoader__.load({
       return tag;
     }
 
-    // ── sidebar: select toolbar above the workspace list ───────────────────
-    function SelectToolbar(props) {
-      var state = useStore();
-      var t = props.t;
-      var count = selectionCount(state);
-      var scan = state.scan;
-      var ids = scan && scan.sessions ? scan.sessions.map(function (row) { return row.id; }) : [];
-      var allOn = ids.length > 0 && ids.every(function (id) { return state.selected[id]; });
-      return h('div', {
-        className: '__md_toolbar',
-        style: { margin: '4px 8px 6px', justifyContent: 'flex-start' }
-      },
-        h('button', {
-          type: 'button',
-          className: '__md_toolbarBtn',
-          title: t('selectMode'),
-          onClick: function () {
-            var next = !store.get().selectMode;
-            setStore({ selectMode: next });
-            if (!next) clearSelected();
-            if (next && !store.get().scan && !store.get().scanning) void runScan();
-          }
-        }, (state.selectMode ? '✓ ' : '☰ ') + t('selectMode')),
-        state.selectMode ? h('span', { role: 'separator' }, '·') : null,
-        state.selectMode ? h('button', {
-          type: 'button',
-          className: '__md_toolbarBtn',
-          onClick: function () { setSelected(ids, !allOn); }
-        }, allOn ? t('clearAll') : t('selectAll')) : null,
-        state.selectMode ? h('span', { role: 'separator' }, '·') : null,
-        state.selectMode ? h('button', {
-          type: 'button',
-          className: '__md_toolbarBtn',
-          style: { color: count > 0 ? 'var(--dsw-alias-state-error-primary,#f85149)' : undefined },
-          disabled: count === 0,
-          onClick: function () { openDeleteDialog(Object.keys(store.get().selected)); }
-        }, t('deleteSelected') + (count > 0 ? ' (' + count + ')' : '')) : null
-      );
-    }
-
-    // ── sidebar: leading checkbox per session row ──────────────────────────
+    // ── sidebar row: checkbox ──────────────────────────────────────────────
     function RowCheck(props) {
       var state = useStore();
       if (!state.selectMode) return null;
       var id = props.sessionId;
-      var checked = state.selected[id] === true;
       return h('input', {
         type: 'checkbox',
         className: '__md_check',
-        checked: checked,
+        checked: state.selected[id] === true,
         'aria-label': id,
         onClick: function (event) { event.stopPropagation(); },
-        onChange: function (event) {
-          event.stopPropagation();
-          toggleId(id);
-        }
+        onChange: function (event) { event.stopPropagation(); toggleId(id); }
       });
     }
 
-    // ── sidebar: hover trash button per session row ────────────────────────
-    function RowDelete(props) {
+    // ── sidebar row: hover actions (select toggle + delete) ────────────────
+    function RowActions(props) {
       var t = props.t;
       var id = props.sessionId;
-      return h('button', {
-        type: 'button',
-        className: '__md_iconBtn',
-        title: t('deleteOne'),
-        'aria-label': t('deleteOne'),
-        onClick: function (event) {
-          event.preventDefault();
-          event.stopPropagation();
-          openDeleteDialog([id]);
-        }
-      }, h('svg', { width: 14, height: 14, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' },
-        h('path', { d: 'M3 4h10M6.5 4V2.8h3V4M4.4 4l.5 9.1h6.2l.5-9.1', stroke: 'currentColor', 'stroke-width': 1.3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })
-      ));
+      var state = useStore();
+      return h(react.Fragment, null,
+        h('button', {
+          type: 'button',
+          className: '__md_iconBtn',
+          title: t('selectMode'),
+          'aria-label': t('selectMode'),
+          onClick: function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            setStore({ selectMode: true });
+          }
+        }, h('svg', { width: 14, height: 14, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' },
+          h('rect', { x: 2.5, y: 3, width: 4, height: 4, rx: 1, stroke: 'currentColor', 'stroke-width': 1.2 }),
+          h('path', { d: 'M8.5 5h5', stroke: 'currentColor', 'stroke-width': 1.2, 'stroke-linecap': 'round' })
+        )),
+        h('button', {
+          type: 'button',
+          className: '__md_iconBtn',
+          title: t('deleteOne'),
+          'aria-label': t('deleteOne'),
+          onClick: function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            openDeleteDialog([id]);
+          }
+        }, h('svg', { width: 14, height: 14, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' },
+          h('path', { d: 'M3 4h10M6.5 4V2.8h3V4M4.4 4l.5 9.1h6.2l.5-9.1', stroke: 'currentColor', 'stroke-width': 1.3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })
+        )),
+        state.selectMode ? null : null
+      );
     }
 
-    // ── global dialog ─────────────────────────────────────────────────────
+    // ── global confirm dialog ─────────────────────────────────────────────
     function DialogHost(props) {
       var state = useStore();
       var t = props.t;
@@ -494,12 +454,8 @@ window.__ModuleLoader__.load({
             h('p', { className: '__md_dialogBody' }, interp(t('confirmPurge'), { n: pending.trashIds.length })),
             h('div', { className: '__md_row', style: { justifyContent: 'flex-end' } },
               h('button', { type: 'button', className: '__md_btn', onClick: function () { setStore({ pending: null }); } }, t('cancel')),
-              h('button', {
-                type: 'button',
-                className: '__md_btn __md_btnDanger',
-                disabled: state.busy === 'purge',
-                onClick: function () { void doPurge(); }
-              }, state.busy === 'purge' ? t('purgeSelected') + '…' : t('purgeSelected'))
+              h('button', { type: 'button', className: '__md_btn __md_btnDanger', disabled: state.busy === 'purge', onClick: function () { void doPurge(); } },
+                state.busy === 'purge' ? t('purgeSelected') + '…' : t('purgeSelected'))
             )
           )
         );
@@ -507,13 +463,11 @@ window.__ModuleLoader__.load({
 
       var ids = pending.ids || [];
       var info = pending.info || [];
+      var files = pending.files || [];
       var titles = ids.map(function (id, index) {
         var row = info[index];
-        var title = titleOf(props.ctx, id) || (row && row.title) || t('noTitle');
-        return h('div', { key: id }, title);
+        return h('div', { key: id }, titleOf(props.ctx, id) || (row && row.title) || t('noTitle'));
       });
-      var blocked = pending.workspaceBlocked === true;
-      var others = pending.others || 0;
       return h('div', { className: '__md_mask', onMouseDown: function (event) { if (event.target === event.currentTarget) setStore({ pending: null }); } },
         h('div', { className: '__md_dialog', role: 'dialog', 'aria-modal': 'true' },
           h('p', { className: '__md_dialogTitle' }, t('dialogTitle') + ' · ' + ids.length),
@@ -523,61 +477,50 @@ window.__ModuleLoader__.load({
             h('input', {
               type: 'checkbox',
               className: '__md_check',
-              disabled: blocked,
-              checked: !blocked && pending.deleteWorkspace === true,
+              disabled: files.length === 0,
+              checked: files.length > 0 && pending.deleteFiles === true,
               onChange: function (event) {
                 var current = store.get().pending;
                 if (!current) return;
-                setStore({ pending: Object.assign({}, current, { deleteWorkspace: event.target.checked }) });
+                setStore({ pending: Object.assign({}, current, { deleteFiles: event.target.checked }) });
               }
             }),
             h('span', null,
-              h('div', null, t('dialogWorkspace')),
-              h('div', { className: '__md_hint' }, blocked ? interp(t('dialogWorkspaceBlocked'), { n: others }) : t('dialogWorkspaceHint'))
+              h('div', null, t('dialogFiles') + (files.length > 0 ? '（' + interp(t('filesBadge'), { n: files.length }) + '）' : '')),
+              h('div', { className: '__md_hint' }, files.length > 0 ? t('dialogFilesHint') : t('dialogNoFiles'))
             )
           ),
+          files.length > 0 ? h('ul', { className: '__md_files' }, files.slice(0, 40).map(function (file) {
+            return h('li', { key: file.path, title: file.path }, file.rel || file.path);
+          })) : null,
           state.error ? h('div', { className: '__md_err' }, state.error) : null,
           h('div', { className: '__md_row', style: { justifyContent: 'flex-end' } },
-            h('button', {
-              type: 'button',
-              className: '__md_btn',
-              onClick: function () { setStore({ pending: null, error: '' }); }
-            }, t('giveUp')),
-            h('button', {
-              type: 'button',
-              className: '__md_btn __md_btnDanger',
-              disabled: state.busy === 'delete',
-              onClick: function () { void doDelete(); }
-            }, state.busy === 'delete' ? t('confirmDelete') + '…' : t('confirmDelete'))
+            h('button', { type: 'button', className: '__md_btn', onClick: function () { setStore({ pending: null, error: '' }); } }, t('giveUp')),
+            h('button', { type: 'button', className: '__md_btn __md_btnDanger', disabled: state.busy === 'delete', onClick: function () { void doDelete(); } },
+              state.busy === 'delete' ? t('confirmDelete') + '…' : t('confirmDelete'))
           )
         )
       );
     }
 
-    // ── main page ─────────────────────────────────────────────────────────
+    // ── manager page ──────────────────────────────────────────────────────
     function Page(props) {
       var state = useStore();
       var t = props.t;
       var ctx = props.ctx;
-
       react.useEffect(function () {
-        if (!state.autoRan && !state.scanning) void runScan();
+        if (!state.autoRan && !state.scanning) void runScan(false);
       }, []);
 
       var scan = state.scan;
       var trash = scan && scan.trash ? scan.trash : { entries: [] };
       var now = Date.now();
-      var rows = (scan && scan.sessions ? scan.sessions : []).slice();
-      var filter = state.filter || 'all';
-      if (filter === 'junk') rows = rows.filter(function (row) { return row.junk; });
-      rows.sort(function (a, b) {
-        var ta = updatedOf(ctx, a.id) || a.createdAt || 0;
-        var tb = updatedOf(ctx, b.id) || b.createdAt || 0;
-        return tb - ta;
+      var all = (scan && scan.sessions ? scan.sessions.slice() : []);
+      all.sort(function (a, b) {
+        return (updatedOf(ctx, b.id) || b.createdAt || 0) - (updatedOf(ctx, a.id) || a.createdAt || 0);
       });
-
-      var allIds = rows.map(function (row) { return row.id; });
-      var allOn = allIds.length > 0 && allIds.every(function (id) { return state.selected[id]; });
+      var rows = all.slice(0, state.limit);
+      var allOn = all.length > 0 && all.every(function (row) { return state.selected[row.id]; });
       var count = selectionCount(state);
       var trashIds = trash.entries.map(function (entry) { return entry.trashId; });
       var trashAllOn = trashIds.length > 0 && trashIds.every(function (id) { return state.trashSelected[id]; });
@@ -596,16 +539,15 @@ window.__ModuleLoader__.load({
             h('p', { className: '__md_sub' }, t('subtitle'))
           ),
           h('div', { className: '__md_row' },
-            h('button', { type: 'button', className: '__md_btn __md_btnPrimary', disabled: state.scanning, onClick: function () { void runScan(); } },
+            h('button', { type: 'button', className: '__md_btn __md_btnPrimary', disabled: state.scanning, onClick: function () { void runScan(true); } },
               state.scanning ? t('scanning') : t('scan'))
           )
         ),
 
         h('div', { className: '__md_row', style: { gap: 14 } },
           h('span', { className: '__md_itemMeta' }, t('total') + ' ' + (scan && scan.stats ? scan.stats.total : '—')),
-          h('span', { className: '__md_itemMeta' }, t('listed') + ' ' + rows.length),
-          h('span', { className: '__md_itemMeta' }, t('trashCount') + ' ' + (trash.entries.length || 0)),
-          h('span', { className: '__md_itemMeta' }, scan && scan.scannedAt ? t('autoScanned') + ' ' + fmtDate(scan.scannedAt) : '')
+          h('span', { className: '__md_itemMeta' }, t('listed') + ' ' + all.length),
+          h('span', { className: '__md_itemMeta' }, t('trashCount') + ' ' + (trash.entries.length || 0))
         ),
 
         h('div', { className: '__md_tabs' },
@@ -627,11 +569,7 @@ window.__ModuleLoader__.load({
                 if (!next) clearSelected();
               }
             }, (state.selectMode ? '✓ ' : '☰ ') + t('selectMode')),
-            state.selectMode ? h('button', {
-              type: 'button',
-              className: '__md_btn',
-              onClick: function () { setSelected(allIds, !allOn); }
-            }, allOn ? t('clearAll') : t('selectAll')) : null,
+            state.selectMode ? h('button', { type: 'button', className: '__md_btn', onClick: function () { setSelected(all.map(function (row) { return row.id; }), !allOn); } }, allOn ? t('clearAll') : t('selectAll')) : null,
             state.selectMode ? h('button', {
               type: 'button',
               className: '__md_btn __md_btnDanger',
@@ -654,16 +592,8 @@ window.__ModuleLoader__.load({
                 var on = state.selected[id] === true;
                 var title = titleOf(ctx, id) || row.title || t('noTitle');
                 var when = updatedOf(ctx, id) || row.createdAt || 0;
-                return h('div', {
-                  key: id,
-                  className: '__md_line' + (on ? ' __md_lineOn' : ''),
-                  onClick: function () { if (state.selectMode) toggleId(id); }
-                },
-                  h('span', null,
-                    state.selectMode
-                      ? h('input', { type: 'checkbox', className: '__md_check', checked: on, onChange: function () { toggleId(id); }, onClick: function (e) { e.stopPropagation(); } })
-                      : null
-                  ),
+                return h('div', { key: id, className: '__md_line' + (on ? ' __md_lineOn' : ''), onClick: function () { if (state.selectMode) toggleId(id); } },
+                  h('span', null, state.selectMode ? h('input', { type: 'checkbox', className: '__md_check', checked: on, onChange: function () { toggleId(id); }, onClick: function (e) { e.stopPropagation(); } }) : null),
                   h('div', { className: '__md_item' },
                     h('div', { className: '__md_itemTitle' }, title),
                     h('div', { className: '__md_itemMeta' }, (row.workspaceTitle || t('unregistered')) + ' · ' + fmtBytes(row.sizeBytes))
@@ -680,7 +610,10 @@ window.__ModuleLoader__.load({
                     ))
                   )
                 );
-              })
+              }),
+            all.length > rows.length ? h('div', { style: { padding: '8px 10px', textAlign: 'center' } },
+              h('button', { type: 'button', className: '__md_btn', onClick: function () { setStore({ limit: state.limit + 100 }); } },
+                t('more') + ' (' + (all.length - rows.length) + ')')) : null
           )
         ) : null,
 
@@ -697,56 +630,35 @@ window.__ModuleLoader__.load({
                 setStore({ trashSelected: next });
               }
             }, trashAllOn ? t('clearAll') : t('selectAll')),
-            h('button', {
-              type: 'button',
-              className: '__md_btn',
-              disabled: trashCount === 0 || state.busy === 'restore',
-              onClick: function () { void restoreTrash(Object.keys(store.get().trashSelected)); }
-            }, t('restoreSelected') + (trashCount > 0 ? ' (' + trashCount + ')' : '')),
-            h('button', {
-              type: 'button',
-              className: '__md_btn __md_btnDanger',
-              disabled: trashCount === 0,
-              onClick: function () { openPurgeDialog(Object.keys(store.get().trashSelected)); }
-            }, t('purgeSelected') + (trashCount > 0 ? ' (' + trashCount + ')' : ''))
+            h('button', { type: 'button', className: '__md_btn', disabled: trashCount === 0 || state.busy === 'restore', onClick: function () { void restoreTrash(Object.keys(store.get().trashSelected)); } },
+              t('restoreSelected') + (trashCount > 0 ? ' (' + trashCount + ')' : '')),
+            h('button', { type: 'button', className: '__md_btn __md_btnDanger', disabled: trashCount === 0, onClick: function () { openPurgeDialog(Object.keys(store.get().trashSelected)); } },
+              t('purgeSelected') + (trashCount > 0 ? ' (' + trashCount + ')' : ''))
           ),
           h('div', { className: '__md_list' },
-            h('div', { className: '__md_line __md_lineHead' },
-              h('span', null, '☑'),
-              h('span', null, t('colTitle')),
-              h('span', null, t('time'))
-            ),
+            h('div', { className: '__md_line __md_lineHead' }, h('span', null, '☑'), h('span', null, t('colTitle')), h('span', null, t('time'))),
             trash.entries.length === 0
               ? h('div', { className: '__md_empty' }, t('trashEmpty'))
               : trash.entries.slice().sort(function (a, b) { return (b.deletedAt || 0) - (a.deletedAt || 0); }).map(function (entry) {
                 var on = state.trashSelected[entry.trashId] === true;
+                var fileCount = Array.isArray(entry.files) ? entry.files.length : 0;
                 return h('div', { key: entry.trashId, className: '__md_line' + (on ? ' __md_lineOn' : '') },
                   h('input', { type: 'checkbox', className: '__md_check', checked: on, onChange: function () { toggleTrash(entry.trashId); } }),
                   h('div', { className: '__md_item' },
                     h('div', { className: '__md_itemTitle' }, entry.title || titleOf(ctx, entry.sessionId) || t('noTitle')),
-                    h('div', { className: '__md_itemMeta' }, entry.sessionId + ' · ' + fmtBytes(entry.sizeBytes) + (entry.workspaceMoved ? ' · 含工作区文件' : ''))
+                    h('div', { className: '__md_itemMeta' }, entry.sessionId + ' · ' + fmtBytes(entry.sizeBytes) + (fileCount > 0 ? ' · ' + interp(t('filesBadge'), { n: fileCount }) : ''))
                   ),
                   h('div', { className: '__md_right' },
                     h('span', { className: '__md_time', title: fmtDate(entry.deletedAt) }, relTime(entry.deletedAt, now)),
-                    h('button', {
-                      type: 'button',
-                      className: '__md_btn',
-                      disabled: state.busy === 'restore',
-                      onClick: function () { void restoreTrash([entry.trashId]); }
-                    }, t('restoreSelected'))
+                    h('button', { type: 'button', className: '__md_btn', disabled: state.busy === 'restore', onClick: function () { void restoreTrash([entry.trashId]); } }, t('restoreSelected'))
                   )
                 );
               })
           )
-        ) : null,
-
-        scan && scan.warnings && scan.warnings.length > 0
-          ? h('div', { className: '__md_itemMeta' }, scan.warnings.join(' ｜ '))
-          : null
+        ) : null
       );
     }
 
-    // ── icons ─────────────────────────────────────────────────────────────
     function PanelGlyph(props) {
       var size = props && props.size ? props.size : 16;
       return h('svg', { width: size, height: size, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' },
@@ -762,84 +674,48 @@ window.__ModuleLoader__.load({
       }, [locale]);
     }
 
-    function withLocale(Component, ctx, t) {
-      return function Bound(props) {
-        useLocale(ctx.locale);
-        return h(Component, Object.assign({}, props, { t: t, ctx: ctx }));
-      };
-    }
-
     function apply(ctx) {
       var styleTag = installStyles();
-      ctx.effect(function () {
-        return function () { try { styleTag.remove(); } catch (error) { /* ignore */ } };
-      }, 'dsh-manage-deletion: styles');
+      ctx.effect(function () { return function () { try { styleTag.remove(); } catch (error) { /* ignore */ } }; }, 'dsh-manage-deletion: styles');
       ctx.effect(function () { return ctx.locale.register(NS, { zh: zh, en: en }); }, 'dsh-manage-deletion: dictionaries');
       var t = ctx.locale.bind(NS);
 
-      // Keep titles fresh in the background: the client session store updates
-      // as sessions change, so the page never shows stale names.
       try {
         var sessions = ctx.get('sessions');
         if (sessions && sessions.list && typeof sessions.list.subscribe === 'function') {
-          ctx.effect(function () {
-            return sessions.list.subscribe(function () { readSessionRows(ctx); });
-          }, 'dsh-manage-deletion: session titles');
+          ctx.effect(function () { return sessions.list.subscribe(function () { readSessionRows(ctx); }); }, 'dsh-manage-deletion: session titles');
         }
       } catch (error) { /* titles fall back to the host scan */ }
 
       ctx.slots.inject('sidebar.panellist', function () {
-        return ctx.slots.register({
-          name: 'sidebar.panellist',
-          id: PANEL_ID,
-          order: 5,
-          label: t('label'),
-          locale: NS
-        }, PanelGlyph);
+        return ctx.slots.register({ name: 'sidebar.panellist', id: PANEL_ID, order: 5, label: t('label'), locale: NS }, PanelGlyph);
       });
 
       ctx.slots.inject('main', function () {
-        return ctx.slots.register({
-          name: 'main',
-          key: PANEL_ID,
-          locale: NS
-        }, function MainPage(props) {
+        return ctx.slots.register({ name: 'main', key: PANEL_ID, locale: NS }, function MainPage() {
           return h(Page, { t: t, ctx: ctx, locale: ctx.locale });
         });
       });
 
-      ctx.slots.inject('sidebar.workspaces', function () {
-        return ctx.slots.register({
-          name: 'sidebar.workspaces',
-          id: 'manage-deletion.toolbar',
-          order: -100,
-          locale: NS
-        }, withLocale(function ToolbarHost(props) { return h(SelectToolbar, { t: props.t }); }, ctx, t));
-      });
-
       ctx.slots.inject('sidebar.session.row.leading', function () {
-        return ctx.slots.register({
-          name: 'sidebar.session.row.leading',
-          id: 'manage-deletion.check',
-          order: 0
-        }, withLocale(function CheckHost(props) { return h(RowCheck, { sessionId: props.sessionId }); }, ctx, t));
+        return ctx.slots.register({ name: 'sidebar.session.row.leading', id: 'manage-deletion.check', order: 0 }, function CheckHost(props) {
+          useLocale(ctx.locale);
+          return h(RowCheck, { sessionId: props.sessionId });
+        });
       });
 
       ctx.slots.inject('sidebar.workspaces.session.row.action', function () {
-        return ctx.slots.register({
-          name: 'sidebar.workspaces.session.row.action',
-          id: 'manage-deletion.delete',
-          order: 0,
-          locale: NS
-        }, withLocale(function DeleteHost(props) { return h(RowDelete, { sessionId: props.sessionId, t: props.t }); }, ctx, t));
+        return ctx.slots.register({ name: 'sidebar.workspaces.session.row.action', id: 'manage-deletion.delete', order: 0, locale: NS }, function ActionHost(props) {
+          useLocale(ctx.locale);
+          return h(RowActions, { sessionId: props.sessionId, t: t });
+        });
       });
 
       ctx.slots.inject('shell.overlay', function () {
-        return ctx.slots.register({
-          name: 'shell.overlay',
-          id: 'manage-deletion.dialog',
-          locale: NS
-        }, withLocale(function DialogHostBound(props) { return h(DialogHost, { t: props.t, ctx: props.ctx }); }, ctx, t));
+        return ctx.slots.register({ name: 'shell.overlay', id: 'manage-deletion.dialog', locale: NS }, function DialogHostBound() {
+          useLocale(ctx.locale);
+          return h(DialogHost, { t: t, ctx: ctx });
+        });
       });
     }
 

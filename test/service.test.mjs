@@ -81,7 +81,8 @@ function makeCtx(rows, options = {}) {
       readTitleSnapshots: async (ids) => ids.map((id) => ({
         status: 'fulfilled',
         value: { session: { id }, title: options.titles?.[id] || '' }
-      }))
+      })),
+      readSession: async (id) => (options.events && options.events[id]) || []
     }
   };
   const ctx = {
@@ -197,47 +198,60 @@ test('unarchive drops the archive mark without touching files', async () => {
   assert.equal(again[0].code, 'not-archived');
 });
 
-test('info reports sizes, times and whether the workspace folder can travel', async () => {
-  const { home, rows, service } = setup();
-  const shared = await service.info([rows[0].header.id, rows[2].header.id]);
-  assert.equal(shared.length, 2);
-  assert.equal(shared[0].canDeleteWorkspace, false, 'workspace holds other sessions');
-  assert.equal(shared[0].otherSessions, 3);
+test('info reports sizes, times and the files the session wrote', async () => {
+  const built = setup();
+  const home = built.home;
+  mkdirSync(join(home, 'projects', 'ws-demo'), { recursive: true });
+  writeFileSync(join(home, 'projects', 'ws-demo', 'a.txt'), 'x');
+  writeFileSync(join(home, 'projects', 'ws-demo', 'b.txt'), 'y');
+  built.services.sessionQuery.readSession = async () => [
+    { type: 'tool/call', data: { name: 'write', arguments: JSON.stringify({ file_path: join(home, 'projects', 'ws-demo', 'a.txt') }) } },
+    { type: 'tool/call', data: { name: 'read', arguments: JSON.stringify({ file_path: join(home, 'projects', 'ws-demo', 'b.txt') }) } }
+  ];
 
-  const soloDir = join(home, 'projects', 'solo');
-  mkdirSync(soloDir, { recursive: true });
-  rows[1].header.cwd = soloDir;
-  const solo = await service.info([rows[1].header.id]);
-  assert.equal(solo[0].canDeleteWorkspace, true);
-  assert.equal(solo[0].otherSessions, 0);
+  const rowsOut = await built.service.info(['session-blank0001']);
+  assert.equal(rowsOut.length, 1);
+  assert.equal(rowsOut[0].files.length, 1, 'only the written file binds');
+  assert.equal(rowsOut[0].files[0].rel, 'a.txt');
 });
 
-test('trash can move the workspace folder too, and restore brings it back', async () => {
-  const { home, rows, service } = setup();
-  const soloDir = join(home, 'projects', 'solo');
-  mkdirSync(soloDir, { recursive: true });
-  writeFileSync(join(soloDir, 'project.txt'), 'hello');
-  rows[1].header.cwd = soloDir;
+test('trash can move the files the session wrote, and restore brings them back', async () => {
+  const built = setup();
+  const home = built.home;
+  const projectDir = join(home, 'projects', 'ws-demo');
+  mkdirSync(projectDir, { recursive: true });
+  writeFileSync(join(projectDir, 'report.md'), 'hello');
+  writeFileSync(join(projectDir, 'untouched.txt'), 'keep me');
+  built.services.sessionQuery.readSession = async () => [
+    { type: 'tool/call', data: { name: 'edit', arguments: JSON.stringify({ file_path: join(projectDir, 'report.md') }) } }
+  ];
 
-  const trashed = await service.trash([rows[1].header.id], { moveWorkspace: true });
+  const trashed = await built.service.trash(['session-blank0001'], { deleteFiles: true });
   assert.equal(trashed[0].ok, true);
-  assert.equal(existsSync(soloDir), false, 'workspace folder moved away');
-  const report = await service.scan();
+  assert.equal(existsSync(join(projectDir, 'report.md')), false, 'written file moved to trash');
+  assert.equal(existsSync(join(projectDir, 'untouched.txt')), true, 'other workspace files untouched');
+
+  const report = await built.service.scan({ force: true });
   const entry = report.trash.entries[0];
-  assert.equal(entry.workspaceMoved, true);
+  assert.equal(entry.files.length, 1);
 
-  const restored = await service.restore([entry.trashId]);
+  const restored = await built.service.restore([entry.trashId]);
   assert.equal(restored[0].ok, true);
-  assert.equal(existsSync(join(soloDir, 'project.txt')), true, 'workspace file came back');
-  assert.equal(existsSync(rows[1].dir), true, 'session log came back');
+  assert.equal(existsSync(join(projectDir, 'report.md')), true, 'file came back');
+  assert.equal(existsSync(built.rows[0].dir), true, 'session log came back');
 });
 
-test('trash never moves a workspace folder another session still uses', async () => {
-  const { rows, service } = setup();
-  const trashed = await service.trash([rows[0].header.id], { moveWorkspace: true });
-  assert.equal(trashed[0].ok, true);
-  const report = await service.scan();
-  assert.equal(report.trash.entries[0].workspaceMoved, false);
+test('a file outside the session cwd is never bound', async () => {
+  const built = setup();
+  const home = built.home;
+  mkdirSync(join(home, 'outside'), { recursive: true });
+  writeFileSync(join(home, 'outside', 'secret.txt'), 'nope');
+  built.services.sessionQuery.readSession = async () => [
+    { type: 'tool/call', data: { name: 'write', arguments: JSON.stringify({ file_path: join(home, 'outside', 'secret.txt') }) } }
+  ];
+
+  const rowsOut = await built.service.info(['session-blank0001']);
+  assert.equal(rowsOut[0].files.length, 0);
 });
 
 test('purge without ids empties the trash', async () => {

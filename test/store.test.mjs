@@ -55,8 +55,8 @@ test('trash then restore round-trips the session directory', async () => {
   assert.equal(index[0].relPath, join('ws-demo', 'session-aaaa1111'));
   assert.equal(await trashBytes(root), 7);
 
-  const target = await restoreSession({ entry: index[0], root, sessionsRoot: store });
-  assert.equal(target, dir);
+  const restored = await restoreSession({ entry: index[0], root, sessionsRoot: store });
+  assert.equal(restored.path, dir);
   assert.equal(existsSync(join(dir, 'session.v4.jsonl.zstd')), true);
   assert.equal(existsSync(join(root, entry.trashId)), false, 'trash payload removed after restore');
 });

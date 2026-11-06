@@ -19,7 +19,7 @@ Package `dsh-manage-deletion`, display name **dsh-Manage deletion** (npm names a
 ## Delete semantics
 
 - **Delete = move to the plugin trash**: the session directory moves to `$DSH_HOME/manage-deletion/trash/<entry>/session` and is recorded in `index.json`; the session disappears from the DSH sidebar.
-- **「Also delete workspace files」**: the session's workspace folder moves into the same trash entry and comes back on restore. It is only selectable when no other session lives in that folder — a shared workspace must not lose other conversations' files.
+- **「Also delete the files these sessions wrote」**: only files the session created or edited inside its own working directory. The dialog lists them one by one (you can untick), and restore brings both the session and the files back. Any path outside the session cwd is dropped.
 - **Delete forever** (from the trash) is physical and needs confirmation.
 - Running and pinned sessions are refused; nothing on disk changes.
 - The delete archives first through the host registry, then moves the log; a failed move rolls the archive back.
