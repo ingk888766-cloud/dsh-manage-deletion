@@ -72,6 +72,8 @@ window.__ModuleLoader__.load({
       more: '加载更多',
       filesBadge: '{n} 个文件',
       fileScanFailed: '文件清单读取失败',
+      filesLoading: '正在读取这个会话写过的文件…',
+      selectBar: '多选',
       restoredFiles: '恢复 {n} 个文件'
     };
     var en = {
@@ -121,6 +123,8 @@ window.__ModuleLoader__.load({
       more: 'Load more',
       filesBadge: '{n} files',
       fileScanFailed: 'File list failed',
+      filesLoading: 'Reading the files this session wrote…',
+      selectBar: 'Select',
       restoredFiles: '{n} files restored'
     };
 
@@ -197,11 +201,19 @@ window.__ModuleLoader__.load({
       });
     }
     async function api(method, params) {
-      var res = await fetch(API, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(Object.assign({ method: method }, params || {}))
-      });
+      var controller = typeof AbortController === 'function' ? new AbortController() : null;
+      var timer = controller ? setTimeout(function () { try { controller.abort(); } catch (error) { /* noop */ } }, 45000) : null;
+      var res;
+      try {
+        res = await fetch(API, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(Object.assign({ method: method }, params || {})),
+          signal: controller ? controller.signal : undefined
+        });
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
       var data = await res.json().catch(function () { return {}; });
       if (!res.ok || data.ok === false) throw new Error(data && data.error ? data.error : 'HTTP ' + res.status);
       return data;
@@ -260,7 +272,7 @@ window.__ModuleLoader__.load({
     function openDeleteDialog(ids) {
       var list = (ids || []).filter(Boolean);
       if (list.length === 0) return;
-      setStore({ pending: { ids: list, deleteFiles: true, info: null, files: [], blocked: 0 } });
+      setStore({ pending: { ids: list, deleteFiles: true, info: null, files: [], loading: true } });
       api('info', { ids: list }).then(function (data) {
         var rows = data.sessions || [];
         var files = [];
@@ -274,13 +286,14 @@ window.__ModuleLoader__.load({
           pending: Object.assign({}, current, {
             info: rows,
             files: files,
-            deleteFiles: files.length > 0
+            deleteFiles: files.length > 0,
+            loading: false
           })
         });
       }).catch(function (error) {
         var current = store.get().pending;
         if (!current) return;
-        setStore({ pending: Object.assign({}, current, { infoError: String(error && error.message ? error.message : error) }) });
+        setStore({ pending: Object.assign({}, current, { loading: false, infoError: String(error && error.message ? error.message : error) }) });
       });
     }
 
@@ -500,7 +513,7 @@ window.__ModuleLoader__.load({
             }),
             h('span', null,
               h('div', null, t('dialogFiles') + (files.length > 0 ? '（' + interp(t('filesBadge'), { n: files.length }) + '）' : '')),
-              h('div', { className: '__md_hint' }, files.length > 0 ? t('dialogFilesHint') : t('dialogNoFiles'))
+              h('div', { className: '__md_hint' }, pending.loading === true ? t('filesLoading') : (files.length > 0 ? t('dialogFilesHint') : t('dialogNoFiles')))
             )
           ),
           files.length > 0 ? h('ul', { className: '__md_files' }, files.slice(0, 40).map(function (file) {
@@ -510,10 +523,76 @@ window.__ModuleLoader__.load({
           state.error ? h('div', { className: '__md_err' }, state.error) : null,
           h('div', { className: '__md_row', style: { justifyContent: 'flex-end' } },
             h('button', { type: 'button', className: '__md_btn', onClick: function () { setStore({ pending: null, error: '' }); } }, t('giveUp')),
-            h('button', { type: 'button', className: '__md_btn __md_btnDanger', disabled: state.busy === 'delete', onClick: function () { void doDelete(); } },
+            h('button', { type: 'button', className: '__md_btn __md_btnDanger', disabled: state.busy === 'delete' || pending.loading === true, onClick: function () { void doDelete(); } },
               state.busy === 'delete' ? t('confirmDelete') + '…' : t('confirmDelete'))
           )
         )
+      );
+    }
+
+    // ── floating select bar ───────────────────────────────────────────────
+    // The sidebar's workspace block has no plugin seat (it is a single-owner
+    // slot), so the bar floats just under our own sidebar row instead of
+    // taking that seat and hiding the official workspace list.
+    function FloatingSelectBar(props) {
+      var state = useStore();
+      var t = props.t;
+      var pair = react.useState(null);
+      var rect = pair[0];
+      var setRect = pair[1];
+      react.useEffect(function () {
+        var alive = true;
+        function measure() {
+          if (!alive) return;
+          var anchor = document.querySelector('button[aria-label="' + t('label') + '"]');
+          if (anchor) {
+            var box = anchor.getBoundingClientRect();
+            setRect({ left: box.left, top: box.bottom + 6, width: Math.max(150, box.width) });
+            return;
+          }
+          var col = document.querySelector('[class*="sidebarCol"]');
+          if (col) {
+            var cbox = col.getBoundingClientRect();
+            setRect({ left: cbox.left + 10, top: cbox.top + 96, width: Math.max(150, cbox.width - 20) });
+            return;
+          }
+          setRect(null);
+        }
+        measure();
+        var timer = setInterval(measure, 1200);
+        window.addEventListener('resize', measure);
+        return function () {
+          alive = false;
+          clearInterval(timer);
+          window.removeEventListener('resize', measure);
+        };
+      }, []);
+      if (!rect) return null;
+
+      var all = state.scan && state.scan.sessions ? state.scan.sessions : [];
+      var allOn = all.length > 0 && all.every(function (row) { return state.selected[row.id]; });
+      var count = Object.keys(state.selected).length;
+
+      if (!state.selectMode) {
+        return h('div', { style: { position: 'fixed', left: rect.left, top: rect.top, width: rect.width, zIndex: 45 } },
+          h('button', {
+            type: 'button',
+            className: '__md_btn',
+            style: { width: '100%', background: '#1f2633', color: '#fff', borderColor: '#39445a' },
+            onClick: function () { setStore({ selectMode: true }); if (!store.get().scan) void runScan(false); }
+          }, '☰ ' + t('selectBar'))
+        );
+      }
+      return h('div', {
+        style: {
+          position: 'fixed', left: rect.left, top: rect.top, width: Math.max(rect.width, 220), zIndex: 45,
+          display: 'flex', gap: 6, flexWrap: 'wrap', padding: 6, borderRadius: 10,
+          background: '#1f2633', color: '#fff', boxShadow: '0 8px 24px rgba(0,0,0,.35)'
+        }
+      },
+        h('button', { type: 'button', className: '__md_btn', style: { flex: '1 1 auto', background: 'transparent', color: '#fff', borderColor: '#39445a' }, onClick: function () { setSelected(all.map(function (row) { return row.id; }), !allOn); } }, allOn ? t('clearAll') : t('selectAll')),
+        h('button', { type: 'button', className: '__md_btn', style: { flex: '1 1 auto', color: '#fff', borderColor: '#39445a', background: count > 0 ? '#b42318' : 'transparent' }, disabled: count === 0, onClick: function () { openDeleteDialog(Object.keys(store.get().selected)); } }, t('deleteSelected') + (count > 0 ? ' (' + count + ')' : '')),
+        h('button', { type: 'button', className: '__md_btn', style: { background: 'transparent', color: '#c9d1e0', borderColor: '#39445a' }, onClick: function () { setStore({ selectMode: false, selected: {} }); } }, '×')
       );
     }
 
@@ -731,6 +810,13 @@ window.__ModuleLoader__.load({
         return ctx.slots.register({ name: 'shell.overlay', id: 'manage-deletion.dialog', locale: NS }, function DialogHostBound() {
           useLocale(ctx.locale);
           return h(DialogHost, { t: t, ctx: ctx });
+        });
+      });
+
+      ctx.slots.inject('shell.overlay', function () {
+        return ctx.slots.register({ name: 'shell.overlay', id: 'manage-deletion.selectbar', locale: NS }, function SelectBarHost() {
+          useLocale(ctx.locale);
+          return h(FloatingSelectBar, { t: t });
         });
       });
     }
