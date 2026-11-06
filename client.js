@@ -74,6 +74,7 @@ window.__ModuleLoader__.load({
       fileScanFailed: '文件清单读取失败',
       filesLoading: '正在读取这个会话写过的文件…',
       selectBar: '多选',
+      exit: '退出',
       restoredFiles: '恢复 {n} 个文件'
     };
     var en = {
@@ -359,51 +360,61 @@ window.__ModuleLoader__.load({
     }
 
     var CSS = [
-      'html .__md_page{display:flex;flex-direction:column;gap:12px;max-width:980px;height:100%;overflow-y:auto;overflow-x:hidden;padding:18px 20px;font-size:13px;box-sizing:border-box;background:#ffffff;color:#1b1f27}',
-      'html[data-ds-dark-theme] .__md_page{background:#15181e;color:#e8eaf0}',
+      'html .__md_page{display:flex;flex-direction:column;gap:12px;max-width:1040px;height:100%;overflow-y:auto;overflow-x:hidden;padding:18px 22px;font-size:13px;box-sizing:border-box;background:#eaf3ff;color:#10243d}',
+      'html[data-ds-dark-theme] .__md_page{background:#0f1b2d;color:#dce8f8}',
       '.__md_page::-webkit-scrollbar{width:10px}',
-      '.__md_page::-webkit-scrollbar-thumb{background:rgba(128,128,128,.45);border-radius:6px}',
+      '.__md_page::-webkit-scrollbar-thumb{background:rgba(90,130,190,.45);border-radius:6px}',
       '.__md_sticky{position:sticky;top:-18px;z-index:3;display:flex;flex-direction:column;gap:10px;padding:18px 0 10px;background:inherit}',
       '.__md_head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}',
-      '.__md_headTitle{font-size:15px;font-weight:600;margin:0}',
-      '.__md_metaBar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:11px;color:#7a8290}',
-      '.__md_title{font-size:15px;font-weight:600;margin:0}',
-      '.__md_sub{margin:4px 0 0;font-size:12px;color:var(--dsw-alias-label-tertiary)}',
+      '.__md_title{font-size:16px;font-weight:700;margin:0;color:#0b2545}',
+      'html[data-ds-dark-theme] .__md_title{color:#eaf3ff}',
+      '.__md_sub{margin:4px 0 0;font-size:12px;color:#4d6b8f}',
+      'html[data-ds-dark-theme] .__md_sub{color:#93a9c8}',
       '.__md_row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}',
-      '.__md_btn{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary);border-radius:8px;padding:5px 12px;font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}',
-      '.__md_btn:hover:not(:disabled){border-color:var(--dsw-alias-state-business-primary)}',
+      '.__md_btn{border:1px solid #b9d2f0;background:#ffffff;color:#17395f;border-radius:9px;padding:6px 14px;font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}',
+      'html[data-ds-dark-theme] .__md_btn{background:#16263c;border-color:#2b4768;color:#dce8f8}',
+      '.__md_btn:hover:not(:disabled){border-color:#2f6fed;color:#2f6fed}',
       '.__md_btn:disabled{opacity:.45;cursor:default}',
-      '.__md_btnPrimary{border-color:var(--dsw-alias-state-business-primary,#3964fe);background:var(--dsw-alias-state-business-primary,#3964fe);color:#fff}',
-      '.__md_btnDanger{border-color:var(--dsw-alias-state-error-primary,#f85149);color:var(--dsw-alias-state-error-primary,#f85149)}',
-      '.__md_tabs{display:flex;gap:6px;border-bottom:1px solid var(--dsw-alias-border-l2);padding-bottom:6px}',
-      '.__md_tab{border:none;background:none;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;padding:4px 10px;border-radius:8px;cursor:pointer}',
-      '.__md_tabOn{background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary);font-weight:600}',
-      '.__md_list{border:1px solid #d9dee7;border-radius:10px;overflow-y:auto;overflow-x:hidden;background:#fff;max-height:calc(100vh - 300px);min-height:120px}',
-      'html[data-ds-dark-theme] .__md_list{background:#1b1f27;border-color:#2a3140}',
-      '.__md_line{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;padding:7px 10px;border-top:1px solid var(--dsw-alias-border-l2)}',
+      '.__md_btnPrimary{border-color:#2f6fed;background:#2f6fed;color:#fff}',
+      '.__md_btnPrimary:hover:not(:disabled){background:#255fd8;color:#fff}',
+      '.__md_btnDanger{border-color:#e05a4f;color:#c0392b;background:#fff}',
+      '.__md_tabs{display:flex;gap:6px;padding:4px;border-radius:12px;background:#dbe9ff;width:max-content}',
+      'html[data-ds-dark-theme] .__md_tabs{background:#16263c}',
+      '.__md_tab{border:none;background:transparent;color:#3a5b82;font:inherit;font-size:12px;padding:6px 14px;border-radius:9px;cursor:pointer}',
+      '.__md_tabOn{background:#ffffff;color:#12467f;font-weight:600;box-shadow:0 1px 3px rgba(20,60,120,.18)}',
+      'html[data-ds-dark-theme] .__md_tabOn{background:#22405f;color:#eaf3ff}',
+      '.__md_list{border:1px solid #c9dcf5;border-radius:12px;overflow-y:auto;overflow-x:hidden;background:#ffffff;max-height:calc(100vh - 300px);min-height:120px}',
+      'html[data-ds-dark-theme] .__md_list{background:#132238;border-color:#26405f}',
+      '.__md_line{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;padding:8px 12px;border-top:1px solid #e3eefb}',
+      'html[data-ds-dark-theme] .__md_line{border-top-color:#1d3149}',
       '.__md_line:first-child{border-top:none}',
-      '.__md_lineHead{font-size:11px;color:var(--dsw-alias-label-tertiary);background:var(--dsw-alias-bg-layer-2)}',
-      '.__md_lineOn{background:color-mix(in srgb,var(--dsw-alias-state-business-primary) 8%,transparent)}',
+      '.__md_lineHead{font-size:11px;color:#5b7899;background:#f2f8ff}',
+      'html[data-ds-dark-theme] .__md_lineHead{background:#16263c;color:#93a9c8}',
+      '.__md_lineOn{background:#deecff}',
+      'html[data-ds-dark-theme] .__md_lineOn{background:#1b3352}',
       '.__md_item{min-width:0}',
-      '.__md_itemTitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:inherit}',
-      '.__md_itemMeta{font-size:11px;color:#7a8290;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+      '.__md_itemTitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:inherit;font-size:13px}',
+      '.__md_itemMeta{font-size:11px;color:#5b7899;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+      'html[data-ds-dark-theme] .__md_itemMeta{color:#93a9c8}',
       '.__md_right{display:flex;align-items:center;gap:10px}',
-      '.__md_time{font-size:11px;color:#7a8290;white-space:nowrap;min-width:64px;text-align:right}',
-      '.__md_empty{padding:20px;text-align:center;color:var(--dsw-alias-label-tertiary);font-size:12px}',
-      '.__md_notice{font-size:12px;color:var(--dsw-alias-label-secondary);white-space:pre-wrap}',
-      '.__md_err{font-size:12px;color:var(--dsw-alias-state-error-primary,#f85149);white-space:pre-wrap}',
-      '.__md_check{accent-color:var(--dsw-alias-state-business-primary);cursor:pointer}',
-      '.__md_iconBtn{border:none;background:none;color:var(--dsw-alias-label-tertiary);cursor:pointer;padding:2px;border-radius:6px;display:inline-flex;align-items:center}',
-      '.__md_iconBtn:hover{color:var(--dsw-alias-state-error-primary,#f85149);background:var(--dsw-alias-interactive-bg-hover)}',
-      '.__md_mask{position:fixed;inset:0;background:var(--dsw-alias-bg-mask-1,rgba(0,0,0,.45));display:flex;align-items:center;justify-content:center;z-index:1000}',
-      '.__md_dialog{width:min(520px,92vw);background:var(--dsw-alias-bg-layer-1,#fff);color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;box-shadow:0 18px 48px rgba(0,0,0,.28)}',
+      '.__md_time{font-size:11px;color:#5b7899;white-space:nowrap;min-width:64px;text-align:right}',
+      '.__md_empty{padding:24px;text-align:center;color:#6b87a8;font-size:12px}',
+      '.__md_notice{font-size:12px;color:#1d5f8a;white-space:pre-wrap}',
+      '.__md_err{font-size:12px;color:#c0392b;white-space:pre-wrap}',
+      '.__md_check{accent-color:#2f6fed;cursor:pointer}',
+      '.__md_iconBtn{border:none;background:none;color:#5b7899;cursor:pointer;padding:2px;border-radius:6px;display:inline-flex;align-items:center}',
+      '.__md_iconBtn:hover{color:#c0392b;background:#e6f0ff}',
+      '.__md_mask{position:fixed;inset:0;background:rgba(10,30,60,.45);display:flex;align-items:center;justify-content:center;z-index:1000}',
+      '.__md_dialog{width:min(540px,92vw);background:#f7fbff;color:#10243d;border:1px solid #c9dcf5;border-radius:16px;padding:18px 20px;display:flex;flex-direction:column;gap:10px;box-shadow:0 18px 48px rgba(10,40,90,.35)}',
+      'html[data-ds-dark-theme] .__md_dialog{background:#132238;color:#dce8f8;border-color:#26405f}',
       '.__md_dialogTitle{font-size:14px;font-weight:600;margin:0}',
-      '.__md_dialogBody{font-size:12px;color:var(--dsw-alias-label-secondary);white-space:pre-wrap;margin:0}',
-      '.__md_dialogList{max-height:150px;overflow:auto;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;padding:6px 8px;font-size:12px}',
+      '.__md_dialogBody{font-size:12px;color:#3a5b82;white-space:pre-wrap;margin:0}',
+      'html[data-ds-dark-theme] .__md_dialogBody{color:#93a9c8}',
+      '.__md_dialogList{max-height:150px;overflow:auto;border:1px solid #c9dcf5;border-radius:10px;padding:8px 10px;font-size:12px;background:#fff}',
       '.__md_dialogList div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
       '.__md_opt{display:flex;gap:8px;align-items:flex-start;font-size:12px}',
-      '.__md_hint{font-size:11px;color:var(--dsw-alias-label-tertiary)}',
-      '.__md_files{margin:0;padding-left:16px;font-size:11px;color:var(--dsw-alias-label-tertiary);max-height:110px;overflow:auto}'
+      '.__md_hint{font-size:11px;color:#5b7899}',
+      '.__md_files{margin:0;padding-left:16px;font-size:11px;color:#5b7899;max-height:110px;overflow:auto}'
     ].join('');
 
     function installStyles() {
@@ -601,6 +612,14 @@ window.__ModuleLoader__.load({
       var state = useStore();
       var t = props.t;
       var ctx = props.ctx;
+      // UI-only state stays local: one click must repaint this page even if the
+      // shared store's subscribers are not wired the way we expect.
+      var tabPair = react.useState('sessions');
+      var tab = tabPair[0];
+      var setTab = tabPair[1];
+      var limitPair = react.useState(50);
+      var limit = limitPair[0];
+      var setLimit = limitPair[1];
       react.useEffect(function () {
         if (!state.autoRan && !state.scanning) void runScan(false);
       }, []);
@@ -612,7 +631,7 @@ window.__ModuleLoader__.load({
       all.sort(function (a, b) {
         return (updatedOf(ctx, b.id) || b.createdAt || 0) - (updatedOf(ctx, a.id) || a.createdAt || 0);
       });
-      var rows = all.slice(0, state.limit);
+      var rows = all.slice(0, limit);
       var allOn = all.length > 0 && all.every(function (row) { return state.selected[row.id]; });
       var count = selectionCount(state);
       var trashIds = trash.entries.map(function (entry) { return entry.trashId; });
@@ -634,7 +653,22 @@ window.__ModuleLoader__.load({
           ),
           h('div', { className: '__md_row' },
             h('button', { type: 'button', className: '__md_btn __md_btnPrimary', disabled: state.scanning, onClick: function () { void runScan(true); } },
-              state.scanning ? t('scanning') : t('scan'))
+              state.scanning ? t('scanning') : t('scan')),
+            h('button', {
+              type: 'button',
+              className: '__md_btn' + (tab === 'trash' ? ' __md_btnPrimary' : ''),
+              onClick: function () { setTab(tab === 'trash' ? 'sessions' : 'trash'); }
+            }, t('tabTrash') + ' (' + (trash.entries.length || 0) + ')'),
+            h('button', {
+              type: 'button',
+              className: '__md_btn',
+              title: t('exit'),
+              onClick: function () {
+                try {
+                  if (ctx && ctx.layout && typeof ctx.layout.selectPanel === 'function') ctx.layout.selectPanel(null);
+                } catch (error) { /* the host may gate panel switching */ }
+              }
+            }, '✕ ' + t('exit'))
           )
         ),
 
@@ -645,14 +679,24 @@ window.__ModuleLoader__.load({
         ),
 
         h('div', { className: '__md_tabs' },
-          h('button', { type: 'button', className: '__md_tab' + (state.tab === 'sessions' ? ' __md_tabOn' : ''), onClick: function () { setStore({ tab: 'sessions' }); } }, t('tabSessions')),
-          h('button', { type: 'button', className: '__md_tab' + (state.tab === 'trash' ? ' __md_tabOn' : ''), onClick: function () { setStore({ tab: 'trash' }); } }, t('tabTrash') + ' (' + (trash.entries.length || 0) + ')')
+          h('button', {
+            type: 'button',
+            className: '__md_tab' + (tab === 'sessions' ? ' __md_tabOn' : ''),
+            onPointerDown: function () { setTab('sessions'); },
+            onClick: function () { setTab('sessions'); }
+          }, t('tabSessions')),
+          h('button', {
+            type: 'button',
+            className: '__md_tab' + (tab === 'trash' ? ' __md_tabOn' : ''),
+            onPointerDown: function () { setTab('trash'); },
+            onClick: function () { setTab('trash'); }
+          }, t('tabTrash') + ' (' + (trash.entries.length || 0) + ')')
         ),
         h('div', { className: '__md_row' }, state.notice ? h('div', { className: '__md_notice' }, state.notice) : null),
         ),
         state.error ? h('div', { className: '__md_err', role: 'alert' }, t('loadFailed') + ': ' + state.error) : null,
 
-        state.tab === 'sessions' ? h(react.Fragment, null,
+        tab === 'sessions' ? h(react.Fragment, null,
           h('div', { className: '__md_row' },
             h('button', {
               type: 'button',
@@ -707,12 +751,12 @@ window.__ModuleLoader__.load({
                 );
               }),
             all.length > rows.length ? h('div', { style: { padding: '8px 10px', textAlign: 'center' } },
-              h('button', { type: 'button', className: '__md_btn', onClick: function () { setStore({ limit: state.limit + 50 }); } },
+              h('button', { type: 'button', className: '__md_btn', onClick: function () { setLimit(limit + 50); } },
                 t('more') + ' (' + (all.length - rows.length) + ')')) : null
           )
         ) : null,
 
-        state.tab === 'trash' ? h(react.Fragment, null,
+        tab === 'trash' ? h(react.Fragment, null,
           h('div', { className: '__md_row' },
             h('button', {
               type: 'button',
