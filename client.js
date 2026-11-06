@@ -71,6 +71,7 @@ window.__ModuleLoader__.load({
       scanHint: '按会话时间倒序；点「多选」后可勾选、全选。',
       more: '加载更多',
       filesBadge: '{n} 个文件',
+      fileScanFailed: '文件清单读取失败',
       restoredFiles: '恢复 {n} 个文件'
     };
     var en = {
@@ -119,6 +120,7 @@ window.__ModuleLoader__.load({
       scanHint: 'Newest first. Turn on Select to tick rows or select all.',
       more: 'Load more',
       filesBadge: '{n} files',
+      fileScanFailed: 'File list failed',
       restoredFiles: '{n} files restored'
     };
 
@@ -150,7 +152,7 @@ window.__ModuleLoader__.load({
       notice: '',
       error: '',
       autoRan: false,
-      limit: 100
+      limit: 50
     });
 
     function useStore() {
@@ -247,7 +249,7 @@ window.__ModuleLoader__.load({
         // Fast mode: the page reads titles from the live client session store,
         // so the host does not need to fold titles (the expensive part).
         var data = await api('scan', { titles: false, force: force === true });
-        setStore({ scan: data, scanning: false, autoRan: true, limit: 100 });
+        setStore({ scan: data, scanning: false, autoRan: true, limit: 50 });
         return data;
       } catch (error) {
         setStore({ scanning: false, error: String(error && error.message ? error.message : error) });
@@ -275,7 +277,11 @@ window.__ModuleLoader__.load({
             deleteFiles: files.length > 0
           })
         });
-      }).catch(function () { /* dialog still works without the file list */ });
+      }).catch(function (error) {
+        var current = store.get().pending;
+        if (!current) return;
+        setStore({ pending: Object.assign({}, current, { infoError: String(error && error.message ? error.message : error) }) });
+      });
     }
 
     async function doDelete() {
@@ -340,7 +346,7 @@ window.__ModuleLoader__.load({
     }
 
     var CSS = [
-      '.__md_page{display:flex;flex-direction:column;gap:12px;max-width:980px;padding:18px 20px;font-size:13px;color:var(--dsw-alias-label-primary)}',
+      '.__md_page{display:flex;flex-direction:column;gap:12px;max-width:980px;min-height:100%;padding:18px 20px;font-size:13px;color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-base);box-sizing:border-box}',
       '.__md_head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}',
       '.__md_title{font-size:15px;font-weight:600;margin:0}',
       '.__md_sub{margin:4px 0 0;font-size:12px;color:var(--dsw-alias-label-tertiary)}',
@@ -493,6 +499,7 @@ window.__ModuleLoader__.load({
           files.length > 0 ? h('ul', { className: '__md_files' }, files.slice(0, 40).map(function (file) {
             return h('li', { key: file.path, title: file.path }, file.rel || file.path);
           })) : null,
+          pending.infoError ? h('div', { className: '__md_err' }, t('fileScanFailed') + ': ' + pending.infoError) : null,
           state.error ? h('div', { className: '__md_err' }, state.error) : null,
           h('div', { className: '__md_row', style: { justifyContent: 'flex-end' } },
             h('button', { type: 'button', className: '__md_btn', onClick: function () { setStore({ pending: null, error: '' }); } }, t('giveUp')),
@@ -592,6 +599,7 @@ window.__ModuleLoader__.load({
                 var on = state.selected[id] === true;
                 var title = titleOf(ctx, id) || row.title || t('noTitle');
                 var when = updatedOf(ctx, id) || row.createdAt || 0;
+                var timeText = when ? relTime(when, now) : '—';
                 return h('div', { key: id, className: '__md_line' + (on ? ' __md_lineOn' : ''), onClick: function () { if (state.selectMode) toggleId(id); } },
                   h('span', null, state.selectMode ? h('input', { type: 'checkbox', className: '__md_check', checked: on, onChange: function () { toggleId(id); }, onClick: function (e) { e.stopPropagation(); } }) : null),
                   h('div', { className: '__md_item' },
@@ -599,7 +607,7 @@ window.__ModuleLoader__.load({
                     h('div', { className: '__md_itemMeta' }, (row.workspaceTitle || t('unregistered')) + ' · ' + fmtBytes(row.sizeBytes))
                   ),
                   h('div', { className: '__md_right' },
-                    h('span', { className: '__md_time', title: fmtDate(when) }, relTime(when, now)),
+                    h('span', { className: '__md_time', title: fmtDate(when) }, timeText),
                     h('button', {
                       type: 'button',
                       className: '__md_iconBtn',
@@ -612,7 +620,7 @@ window.__ModuleLoader__.load({
                 );
               }),
             all.length > rows.length ? h('div', { style: { padding: '8px 10px', textAlign: 'center' } },
-              h('button', { type: 'button', className: '__md_btn', onClick: function () { setStore({ limit: state.limit + 100 }); } },
+              h('button', { type: 'button', className: '__md_btn', onClick: function () { setStore({ limit: state.limit + 50 }); } },
                 t('more') + ' (' + (all.length - rows.length) + ')')) : null
           )
         ) : null,

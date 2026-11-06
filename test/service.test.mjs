@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { zstdCompressSync } from 'node:zlib';
 import { normalizeConfig } from '../lib/config.js';
 import { createJanitorService } from '../lib/service.js';
 
@@ -59,7 +60,10 @@ function makeCtx(rows, options = {}) {
     },
     sessions: {
       list: () => [...state.live].map((id) => ({ id, header: { id } })),
-      get: (id) => (state.live.has(id) ? { id } : undefined)
+      get: (id) => (state.live.has(id) ? { id, status: 'running' } : undefined)
+    },
+    agents: {
+      get: (id) => (state.live.has(id) ? { id, status: 'running' } : undefined)
     },
     workspaceRegistry: {
       list: () => [entity],
@@ -252,6 +256,30 @@ test('a file outside the session cwd is never bound', async () => {
 
   const rowsOut = await built.service.info(['session-blank0001']);
   assert.equal(rowsOut[0].files.length, 0);
+});
+
+test('falls back to decoding the session log when the query service has no events', async () => {
+  const { home, rows, services, service } = setup();
+  const projectDir = join(home, 'projects', 'ws-demo');
+  mkdirSync(projectDir, { recursive: true });
+  const target = join(projectDir, 'from-log.md');
+  writeFileSync(target, 'hello');
+
+  const header = JSON.stringify({ type: 'session', version: 4, id: rows[0].header.id, cwd: projectDir, createdAt: Date.now() });
+  const call = JSON.stringify({ type: 'tool/call', seq: 1, data: { name: 'write', arguments: JSON.stringify({ file_path: target }) } });
+  const logPath = join(rows[0].dir, 'session.v4.jsonl.zstd');
+  writeFileSync(logPath, Buffer.concat([
+    zstdCompressSync(Buffer.from(header + '\n', 'utf8')),
+    zstdCompressSync(Buffer.from(call + '\n', 'utf8'))
+  ]));
+
+  // Query service present but event-less: the local decoder must take over.
+  services.sessionQuery.readSession = async () => [];
+  services.sessionPersistence.stat = async () => ({ header: rows[0].header, sizeBytes: 10, location: { kind: 'jsonl', path: logPath } });
+
+  const out = await service.info([rows[0].header.id]);
+  assert.equal(out[0].files.length, 1);
+  assert.equal(out[0].files[0].rel, 'from-log.md');
 });
 
 test('purge without ids empties the trash', async () => {
