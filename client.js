@@ -388,7 +388,8 @@ window.__ModuleLoader__.load({
       '.__md_row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}',
       '.__md_btn{border:1px solid var(--md-line);background:var(--md-card);color:var(--md-ink);border-radius:16px;padding:9px 18px;font:inherit;font-size:12.5px;cursor:pointer;',
       'white-space:nowrap;transition:transform .1s ease,border-color .18s,color .18s,background .18s}',
-      '.__md_btn:hover:not(:disabled){border-color:var(--md-accent2);color:#cfe0f8;transform:translateY(-1px)}',
+      '.__md_btn:hover:not(:disabled){border-color:var(--md-accent2);color:#cfe0f8;transform:translateY(-1px)}
+  .__md_btnExit:hover:not(:disabled){border-color:transparent;background:rgba(32,40,54,.9);color:#cfe0f8;transform:none}',
       '.__md_btn:disabled{opacity:.4;cursor:default}',
       '.__md_btnPrimary{border-color:transparent;background:linear-gradient(135deg,var(--md-accent-deep),var(--md-accent));color:#eef4ff;font-weight:600;',
       'box-shadow:0 4px 14px rgba(30,60,110,.32)}',
