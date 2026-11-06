@@ -163,6 +163,21 @@ window.__ModuleLoader__.load({
       toast: null
     });
 
+    function resyncSessions(ctx) {
+      try {
+        var sessions = ctx.get('sessions');
+        if (sessions && typeof sessions.refresh === 'function') {
+          void sessions.refresh();
+          return true;
+        }
+        if (sessions && typeof sessions.refreshProjections === 'function') {
+          void sessions.refreshProjections();
+          return true;
+        }
+      } catch (error) { /* older hosts: the reload button stays the fallback */ }
+      return false;
+    }
+
     function useStore() {
       var bump = react.useState(0)[1];
       react.useEffect(function () {
@@ -333,9 +348,10 @@ window.__ModuleLoader__.load({
           pending: null,
           notice: lines.join('\n'),
           selected: {},
-          toast: { kind: 'ok', text: interp('已移入回收站 {n} 个，可在「删除管理 → 回收站」还原。侧栏列表刷新页面后同步。', { n: ok.length }) }
+          toast: { kind: 'ok', text: interp('已移入回收站 {n} 个，可在「删除管理 → 回收站」还原。', { n: ok.length }) }
         });
         setTimeout(function () { setStore({ toast: null }); }, 8000);
+        resyncSessions(ctx);
         await runScan(true);
       } catch (error) {
         setStore({ busy: '', error: String(error && error.message ? error.message : error) });
@@ -355,6 +371,7 @@ window.__ModuleLoader__.load({
         var data = await api('purge', { trashIds: pending.trashIds, confirm: true });
         var ok = (data.results || []).filter(function (row) { return row.ok; });
         setStore({ busy: '', pending: null, notice: interp('已彻底删除 {n} 项。', { n: ok.length }), trashSelected: {} });
+        resyncSessions(ctx);
         await runScan(true);
       } catch (error) {
         setStore({ busy: '', error: String(error && error.message ? error.message : error) });
@@ -376,6 +393,7 @@ window.__ModuleLoader__.load({
           bad.slice(0, 5).forEach(function (row) { lines.push('· ' + (row.sessionId || row.trashId) + ' — ' + (row.message || '')); });
         }
         setStore({ busy: '', notice: lines.join('\n'), trashSelected: {} });
+        resyncSessions(ctx);
         await runScan(true);
       } catch (error) {
         setStore({ busy: '', error: String(error && error.message ? error.message : error) });
