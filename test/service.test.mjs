@@ -33,7 +33,8 @@ function makeCtx(rows, options = {}) {
     pinned: new Set(options.pinned || []),
     live: new Set(options.live || []),
     archiveCalls: [],
-    detachCalls: []
+    detachCalls: [],
+    unpinned: []
   };
   const snapshots = rows.map((row) => ({
     header: row.header,
@@ -79,6 +80,10 @@ function makeCtx(rows, options = {}) {
       },
       async unarchiveSession(id) {
         state.archived.delete(id);
+      },
+      async unpinSession(id) {
+        state.unpinned.push(id);
+        state.pinned.delete(id);
       }
     },
     sessionQuery: {
@@ -135,7 +140,7 @@ test('scan classifies blank, test-titled and subagent sessions but protects live
   assert.equal(report.stats.junk, 2);
 });
 
-test('archive refuses live and pinned sessions and archives the rest', async () => {
+test('archive refuses running sessions, and unpins a pinned one before archiving', async () => {
   const { service, state } = setup();
   const results = await service.archive(['session-blank0001', 'session-live00004', 'session-real00003']);
   const byId = new Map(results.map((row) => [row.id, row]));
@@ -143,26 +148,9 @@ test('archive refuses live and pinned sessions and archives the rest', async () 
   assert.equal(byId.get('session-blank0001').ok, true);
   assert.equal(byId.get('session-live00004').ok, false);
   assert.equal(byId.get('session-live00004').code, 'live');
-  assert.equal(byId.get('session-real00003').ok, false);
-  assert.equal(byId.get('session-real00003').code, 'pinned');
-  assert.deepEqual(state.archiveCalls, ['session-blank0001']);
-});
-
-test('an active session is archived through the stopActivity path instead of failing', async () => {
-  const built = setup();
-  const archived = [];
-  built.services.workspaceRegistry.archiveSession = async (id, options) => {
-    if (options && options.stopActivity === true) {
-      archived.push({ id, stopped: true });
-      return;
-    }
-    const error = new Error('the session is active (agent, jobs)');
-    error.name = 'WorkspaceActiveSessionError';
-    throw error;
-  };
-  const results = await built.service.archive(['session-blank0001']);
-  assert.equal(results[0].ok, true);
-  assert.deepEqual(archived, [{ id: 'session-blank0001', stopped: true }]);
+  assert.equal(byId.get('session-real00003').ok, true, 'pinned sessions are deletable now');
+  assert.deepEqual(state.unpinned, ['session-real00003'], 'pin is dropped first');
+  assert.deepEqual(state.archiveCalls.sort(), ['session-blank0001', 'session-real00003']);
 });
 
 test('trash archives, moves the log, detaches the workspace and records trash', async () => {
