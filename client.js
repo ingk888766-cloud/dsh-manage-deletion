@@ -397,7 +397,9 @@ window.__ModuleLoader__.load({
       '.__md_btnDanger{border-color:#6b3a3a;color:#e79c96;background:rgba(38,24,26,.9)}',
       '.__md_btnSoft{border-color:#2c4472;color:#a8c4ea;background:rgba(26,36,54,.9)}',
       '.__md_btnActive{border-color:var(--md-accent2);color:#cfe0f8;background:rgba(35,45,64,.95)}',
-      '.__md_btnExit{border-color:var(--md-line);background:rgba(26,32,44,.9);color:#a8c4ea;font-weight:600}',
+      '.__md_btnExit{border-color:transparent;background:transparent;color:#8fa4c0;font-weight:500;padding:6px 10px;box-shadow:none}',
+      '.__md_btnClose{border-color:#e0a33a;color:#ffd79a;background:rgba(224,163,58,.22);font-weight:700;font-size:15px;line-height:1;letter-spacing:0;box-shadow:0 0 0 1px rgba(224,163,58,.28)}',
+      '.__md_btnClose:hover:not(:disabled){border-color:#f0b455;color:#ffe6bb;background:rgba(224,163,58,.32);box-shadow:0 0 0 2px rgba(224,163,58,.3)}',
       '.__md_metaBar{display:flex;gap:10px;flex-wrap:wrap}',
       '.__md_stat{display:flex;align-items:baseline;gap:7px;padding:8px 16px;border-radius:16px;background:var(--md-card);border:1px solid var(--md-line)}',
       '.__md_stat b{font-size:16px;font-weight:700;color:#cfe0f8;font-variant-numeric:tabular-nums}',
@@ -653,10 +655,10 @@ window.__ModuleLoader__.load({
       },
         h('button', {
           type: 'button',
-          className: '__md_btn',
+          className: '__md_btn __md_btnClose',
           title: t('clearAll'),
           'aria-label': t('clearAll'),
-          style: { flex: '0 0 auto', width: 34, padding: '2px 0', background: 'transparent', color: '#93a1b8', borderColor: '#2c3a52' },
+          style: { flex: '0 0 auto', width: 36 },
           onClick: function () { setStore({ selectMode: false, selected: {} }); }
         }, '×'),
         h('button', { type: 'button', className: '__md_btn', style: { flex: '1 1 auto', background: 'transparent', color: '#dbe8fa', borderColor: '#2c3a52' }, onClick: function () { setSelected(all.map(function (row) { return row.id; }), !allOn); } }, allOn ? t('clearAll') : t('selectAll')),
@@ -840,7 +842,7 @@ window.__ModuleLoader__.load({
         tab === 'sessions' ? h('div', { className: '__md_toolbar' },
           state.selectMode ? h('button', {
             type: 'button',
-            className: '__md_btn',
+            className: '__md_btn __md_btnClose',
             title: t('clearAll'),
             'aria-label': t('clearAll'),
             onClick: function () {
