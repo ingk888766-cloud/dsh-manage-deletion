@@ -73,6 +73,8 @@ window.__ModuleLoader__.load({
       filesBadge: '{n} 个文件',
       fileScanFailed: '文件清单读取失败',
       filesLoading: '正在读取这个会话写过的文件…',
+      dialogExtras: '额外文件（默认不删）',
+      dialogExtrasHint: '这些文件在会话目录之外，或只是命令里提到过。勾选才会一起移入回收站，恢复时一并还原。',
       selectBar: '多选',
       exit: '退出',
       restoredFiles: '恢复 {n} 个文件'
@@ -273,13 +275,16 @@ window.__ModuleLoader__.load({
     function openDeleteDialog(ids) {
       var list = (ids || []).filter(Boolean);
       if (list.length === 0) return;
-      setStore({ pending: { ids: list, deleteFiles: true, info: null, files: [], loading: true } });
+      setStore({ pending: { ids: list, deleteFiles: true, deleteExtraFiles: false, info: null, files: [], otherFiles: [], loading: true } });
       api('info', { ids: list }).then(function (data) {
         var rows = data.sessions || [];
         var files = [];
+        var otherFiles = [];
         for (var i = 0; i < rows.length; i += 1) {
           var rowFiles = rows[i].files || [];
           for (var j = 0; j < rowFiles.length; j += 1) files.push(rowFiles[j]);
+          var rowExtras = rows[i].otherFiles || [];
+          for (var k = 0; k < rowExtras.length; k += 1) otherFiles.push(rowExtras[k]);
         }
         var current = store.get().pending;
         if (!current || current.ids.join('|') !== list.join('|')) return;
@@ -287,6 +292,7 @@ window.__ModuleLoader__.load({
           pending: Object.assign({}, current, {
             info: rows,
             files: files,
+            otherFiles: otherFiles,
             deleteFiles: files.length > 0,
             loading: false
           })
@@ -303,7 +309,11 @@ window.__ModuleLoader__.load({
       if (!pending) return;
       setStore({ busy: 'delete', error: '' });
       try {
-        var data = await api('trash', { ids: pending.ids, deleteFiles: pending.deleteFiles === true });
+        var data = await api('trash', {
+          ids: pending.ids,
+          deleteFiles: pending.deleteFiles === true,
+          deleteExtraFiles: pending.deleteExtraFiles === true
+        });
         var results = data.results || [];
         var ok = results.filter(function (row) { return row.ok; });
         var bad = results.filter(function (row) { return !row.ok; });
@@ -360,61 +370,68 @@ window.__ModuleLoader__.load({
     }
 
     var CSS = [
-      'html .__md_page{display:flex;flex-direction:column;gap:12px;max-width:1040px;height:100%;overflow-y:auto;overflow-x:hidden;padding:18px 22px;font-size:13px;box-sizing:border-box;background:#eaf3ff;color:#10243d}',
-      'html[data-ds-dark-theme] .__md_page{background:#0f1b2d;color:#dce8f8}',
+      'html .__md_page{display:flex;flex-direction:column;gap:14px;max-width:1040px;height:100%;overflow-y:auto;overflow-x:hidden;padding:20px 24px;font-size:13px;box-sizing:border-box;background:linear-gradient(180deg,#f2f8ff 0%,#e6f0ff 100%);color:#122a46}',
+      'html[data-ds-dark-theme] .__md_page{background:linear-gradient(180deg,#0f1b2d 0%,#0b1524 100%);color:#dbe7f7}',
       '.__md_page::-webkit-scrollbar{width:10px}',
-      '.__md_page::-webkit-scrollbar-thumb{background:rgba(90,130,190,.45);border-radius:6px}',
-      '.__md_sticky{position:sticky;top:-18px;z-index:3;display:flex;flex-direction:column;gap:10px;padding:18px 0 10px;background:inherit}',
-      '.__md_head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}',
-      '.__md_title{font-size:16px;font-weight:700;margin:0;color:#0b2545}',
-      'html[data-ds-dark-theme] .__md_title{color:#eaf3ff}',
-      '.__md_sub{margin:4px 0 0;font-size:12px;color:#4d6b8f}',
-      'html[data-ds-dark-theme] .__md_sub{color:#93a9c8}',
+      '.__md_page::-webkit-scrollbar-thumb{background:rgba(90,130,190,.4);border-radius:6px}',
+      '.__md_sticky{position:sticky;top:-20px;z-index:3;display:flex;flex-direction:column;gap:10px;padding:20px 0 10px;background:inherit}',
+      '.__md_head{display:flex;align-items:center;gap:12px}',
+      '.__md_headText{flex:1 1 auto;min-width:0}',
+      '.__md_title{font-size:17px;font-weight:700;margin:0;letter-spacing:.2px}',
+      '.__md_title:before{content:"";display:inline-block;width:4px;height:16px;border-radius:2px;background:#2f6fed;margin-right:8px;vertical-align:-2px}',
+      '.__md_sub{margin:5px 0 0;font-size:12px;color:#54739a}',
+      'html[data-ds-dark-theme] .__md_sub{color:#8fa8c8}',
       '.__md_row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}',
-      '.__md_btn{border:1px solid #b9d2f0;background:#ffffff;color:#17395f;border-radius:9px;padding:6px 14px;font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}',
-      'html[data-ds-dark-theme] .__md_btn{background:#16263c;border-color:#2b4768;color:#dce8f8}',
-      '.__md_btn:hover:not(:disabled){border-color:#2f6fed;color:#2f6fed}',
-      '.__md_btn:disabled{opacity:.45;cursor:default}',
-      '.__md_btnPrimary{border-color:#2f6fed;background:#2f6fed;color:#fff}',
-      '.__md_btnPrimary:hover:not(:disabled){background:#255fd8;color:#fff}',
-      '.__md_btnDanger{border-color:#e05a4f;color:#c0392b;background:#fff}',
-      '.__md_tabs{display:flex;gap:6px;padding:4px;border-radius:12px;background:#dbe9ff;width:max-content}',
+      '.__md_btn{border:1px solid #bcd4f2;background:#fff;color:#1b3f68;border-radius:10px;padding:7px 15px;font:inherit;font-size:12px;cursor:pointer;white-space:nowrap;box-shadow:0 1px 2px rgba(24,70,130,.06);transition:transform .08s ease,border-color .15s,color .15s}',
+      'html[data-ds-dark-theme] .__md_btn{background:#16263c;border-color:#2b4768;color:#dbe7f7}',
+      '.__md_btn:hover:not(:disabled){border-color:#2f6fed;color:#1d5fd1;transform:translateY(-1px)}',
+      '.__md_btn:active:not(:disabled){transform:translateY(0)}',
+      '.__md_btn:disabled{opacity:.45;cursor:default;box-shadow:none}',
+      '.__md_btnPrimary{border-color:#2f6fed;background:linear-gradient(180deg,#3d7bf5,#2f6fed);color:#fff;font-weight:600}',
+      '.__md_btnPrimary:hover:not(:disabled){color:#fff;border-color:#1d5fd1}',
+      '.__md_btnDanger{border-color:#e7a49c;color:#c0392b;background:#fff6f5}',
+      '.__md_btnExit{order:-1;background:#eef5ff;border-color:#cfe0f7;color:#2a5488;font-weight:600}',
+      'html[data-ds-dark-theme] .__md_btnExit{background:#17293f;border-color:#2b4768;color:#bcd4f2}',
+      '.__md_tabs{display:inline-flex;gap:4px;padding:4px;border-radius:12px;background:#dbe9ff;width:max-content}',
       'html[data-ds-dark-theme] .__md_tabs{background:#16263c}',
-      '.__md_tab{border:none;background:transparent;color:#3a5b82;font:inherit;font-size:12px;padding:6px 14px;border-radius:9px;cursor:pointer}',
-      '.__md_tabOn{background:#ffffff;color:#12467f;font-weight:600;box-shadow:0 1px 3px rgba(20,60,120,.18)}',
+      '.__md_tab{border:none;background:transparent;color:#3a5b82;font:inherit;font-size:12px;padding:7px 16px;border-radius:9px;cursor:pointer;transition:background .15s,color .15s}',
+      '.__md_tabOn{background:#fff;color:#12467f;font-weight:600;box-shadow:0 1px 4px rgba(20,60,120,.18)}',
       'html[data-ds-dark-theme] .__md_tabOn{background:#22405f;color:#eaf3ff}',
-      '.__md_list{border:1px solid #c9dcf5;border-radius:12px;overflow-y:auto;overflow-x:hidden;background:#ffffff;max-height:calc(100vh - 300px);min-height:120px}',
-      'html[data-ds-dark-theme] .__md_list{background:#132238;border-color:#26405f}',
-      '.__md_line{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;padding:8px 12px;border-top:1px solid #e3eefb}',
+      '.__md_list{border:1px solid #d5e5f8;border-radius:14px;overflow-y:auto;overflow-x:hidden;background:#fff;max-height:calc(100vh - 320px);min-height:140px;box-shadow:0 6px 18px rgba(30,80,150,.07)}',
+      'html[data-ds-dark-theme] .__md_list{background:#132238;border-color:#26405f;box-shadow:none}',
+      '.__md_line{display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:center;padding:10px 14px;border-top:1px solid #eef4fc;transition:background .12s}',
+      '.__md_line:hover{background:#f6faff}',
       'html[data-ds-dark-theme] .__md_line{border-top-color:#1d3149}',
+      'html[data-ds-dark-theme] .__md_line:hover{background:#16263c}',
       '.__md_line:first-child{border-top:none}',
-      '.__md_lineHead{font-size:11px;color:#5b7899;background:#f2f8ff}',
-      'html[data-ds-dark-theme] .__md_lineHead{background:#16263c;color:#93a9c8}',
-      '.__md_lineOn{background:#deecff}',
+      '.__md_lineHead{font-size:11px;color:#5b7899;background:#f4f9ff;letter-spacing:.4px}',
+      'html[data-ds-dark-theme] .__md_lineHead{background:#16263c;color:#8fa8c8}',
+      '.__md_lineOn{background:#e7f1ff}',
       'html[data-ds-dark-theme] .__md_lineOn{background:#1b3352}',
       '.__md_item{min-width:0}',
-      '.__md_itemTitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:inherit;font-size:13px}',
-      '.__md_itemMeta{font-size:11px;color:#5b7899;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
-      'html[data-ds-dark-theme] .__md_itemMeta{color:#93a9c8}',
+      '.__md_itemTitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:500}',
+      '.__md_itemMeta{font-size:11px;color:#5b7899;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}',
+      'html[data-ds-dark-theme] .__md_itemMeta{color:#8fa8c8}',
       '.__md_right{display:flex;align-items:center;gap:10px}',
       '.__md_time{font-size:11px;color:#5b7899;white-space:nowrap;min-width:64px;text-align:right}',
-      '.__md_empty{padding:24px;text-align:center;color:#6b87a8;font-size:12px}',
-      '.__md_notice{font-size:12px;color:#1d5f8a;white-space:pre-wrap}',
-      '.__md_err{font-size:12px;color:#c0392b;white-space:pre-wrap}',
-      '.__md_check{accent-color:#2f6fed;cursor:pointer}',
-      '.__md_iconBtn{border:none;background:none;color:#5b7899;cursor:pointer;padding:2px;border-radius:6px;display:inline-flex;align-items:center}',
-      '.__md_iconBtn:hover{color:#c0392b;background:#e6f0ff}',
-      '.__md_mask{position:fixed;inset:0;background:rgba(10,30,60,.45);display:flex;align-items:center;justify-content:center;z-index:1000}',
-      '.__md_dialog{width:min(540px,92vw);background:#f7fbff;color:#10243d;border:1px solid #c9dcf5;border-radius:16px;padding:18px 20px;display:flex;flex-direction:column;gap:10px;box-shadow:0 18px 48px rgba(10,40,90,.35)}',
-      'html[data-ds-dark-theme] .__md_dialog{background:#132238;color:#dce8f8;border-color:#26405f}',
-      '.__md_dialogTitle{font-size:14px;font-weight:600;margin:0}',
-      '.__md_dialogBody{font-size:12px;color:#3a5b82;white-space:pre-wrap;margin:0}',
-      'html[data-ds-dark-theme] .__md_dialogBody{color:#93a9c8}',
-      '.__md_dialogList{max-height:150px;overflow:auto;border:1px solid #c9dcf5;border-radius:10px;padding:8px 10px;font-size:12px;background:#fff}',
-      '.__md_dialogList div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
-      '.__md_opt{display:flex;gap:8px;align-items:flex-start;font-size:12px}',
-      '.__md_hint{font-size:11px;color:#5b7899}',
-      '.__md_files{margin:0;padding-left:16px;font-size:11px;color:#5b7899;max-height:110px;overflow:auto}'
+      '.__md_empty{padding:28px;text-align:center;color:#6b87a8;font-size:12px}',
+      '.__md_notice{font-size:12px;color:#1d5f8a;background:#eaf4ff;border:1px solid #cfe3fb;border-radius:10px;padding:8px 12px;white-space:pre-wrap}',
+      '.__md_err{font-size:12px;color:#b42318;background:#fff5f4;border:1px solid #f3cfc9;border-radius:10px;padding:8px 12px;white-space:pre-wrap}',
+      '.__md_check{accent-color:#2f6fed;cursor:pointer;width:15px;height:15px}',
+      '.__md_iconBtn{border:none;background:none;color:#6a86a8;cursor:pointer;padding:3px;border-radius:7px;display:inline-flex;align-items:center}',
+      '.__md_iconBtn:hover{color:#c0392b;background:#fdeceb}',
+      '.__md_mask{position:fixed;inset:0;background:rgba(8,26,54,.5);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;z-index:1000}',
+      '.__md_dialog{width:min(560px,92vw);background:#fbfdff;color:#122a46;border:1px solid #d5e5f8;border-radius:18px;padding:20px 22px;display:flex;flex-direction:column;gap:12px;box-shadow:0 24px 60px rgba(8,30,70,.35)}',
+      'html[data-ds-dark-theme] .__md_dialog{background:#132238;color:#dbe7f7;border-color:#26405f}',
+      '.__md_dialogTitle{font-size:15px;font-weight:700;margin:0}',
+      '.__md_dialogBody{font-size:12px;color:#456a94;white-space:pre-wrap;margin:0;line-height:1.6}',
+      'html[data-ds-dark-theme] .__md_dialogBody{color:#8fa8c8}',
+      '.__md_dialogList{max-height:150px;overflow:auto;border:1px solid #d5e5f8;border-radius:12px;padding:8px 12px;font-size:12px;background:#fff}',
+      '.__md_dialogList div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:2px 0}',
+      '.__md_opt{display:flex;gap:9px;align-items:flex-start;font-size:12px;padding:10px 12px;border:1px solid #e3eefb;border-radius:12px;background:#f7fbff}',
+      'html[data-ds-dark-theme] .__md_opt{background:#16263c;border-color:#23405f}',
+      '.__md_hint{font-size:11px;color:#5b7899;margin-top:2px}',
+      '.__md_files{margin:0;padding-left:18px;font-size:11px;color:#5b7899;max-height:120px;overflow:auto}'
     ].join('');
 
     function installStyles() {
@@ -530,6 +547,25 @@ window.__ModuleLoader__.load({
           files.length > 0 ? h('ul', { className: '__md_files' }, files.slice(0, 40).map(function (file) {
             return h('li', { key: file.path, title: file.path }, file.rel || file.path);
           })) : null,
+          (pending.otherFiles || []).length > 0 ? h('label', { className: '__md_opt' },
+            h('input', {
+              type: 'checkbox',
+              className: '__md_check',
+              checked: pending.deleteExtraFiles === true,
+              onChange: function (event) {
+                var current = store.get().pending;
+                if (!current) return;
+                setStore({ pending: Object.assign({}, current, { deleteExtraFiles: event.target.checked }) });
+              }
+            }),
+            h('span', null,
+              h('div', null, t('dialogExtras') + '（' + pending.otherFiles.length + '）'),
+              h('div', { className: '__md_hint' }, t('dialogExtrasHint'))
+            )
+          ) : null,
+          (pending.otherFiles || []).length > 0 ? h('ul', { className: '__md_files' }, pending.otherFiles.slice(0, 20).map(function (file) {
+            return h('li', { key: file.path, title: file.path }, file.path);
+          })) : null,
           pending.infoError ? h('div', { className: '__md_err' }, t('fileScanFailed') + ': ' + pending.infoError) : null,
           state.error ? h('div', { className: '__md_err' }, state.error) : null,
           h('div', { className: '__md_row', style: { justifyContent: 'flex-end' } },
@@ -555,6 +591,14 @@ window.__ModuleLoader__.load({
         var alive = true;
         function measure() {
           if (!alive) return;
+          var region = document.querySelector('[class*="regionArea"]');
+          if (region) {
+            var rbox = region.getBoundingClientRect();
+            if (rbox.width > 100) {
+              setRect({ left: rbox.left + 8, top: Math.max(8, rbox.top - 34), width: Math.max(150, rbox.width - 16) });
+              return;
+            }
+          }
           var anchor = document.querySelector('button[aria-label="' + t('label') + '"]');
           if (anchor) {
             var box = anchor.getBoundingClientRect();
@@ -647,28 +691,25 @@ window.__ModuleLoader__.load({
       return h('div', { className: '__md_page' },
         h('div', { className: '__md_sticky' },
         h('div', { className: '__md_head' },
-          h('div', null,
+          h('button', {
+            type: 'button',
+            className: '__md_btn __md_btnExit',
+            title: t('exit'),
+            onClick: function () {
+              try {
+                if (ctx && ctx.layout && typeof ctx.layout.selectPanel === 'function') ctx.layout.selectPanel(null);
+              } catch (error) { /* the host may gate panel switching */ }
+            }
+          }, '← ' + t('exit')),
+          h('div', { className: '__md_headText' },
             h('p', { className: '__md_title' }, t('title')),
             h('p', { className: '__md_sub' }, t('subtitle'))
           ),
           h('div', { className: '__md_row' },
+            h('button', { type: 'button', className: '__md_btn', onClick: function () { setTab(tab === 'trash' ? 'sessions' : 'trash'); } },
+              t('tabTrash') + ' (' + (trash.entries.length || 0) + ')'),
             h('button', { type: 'button', className: '__md_btn __md_btnPrimary', disabled: state.scanning, onClick: function () { void runScan(true); } },
-              state.scanning ? t('scanning') : t('scan')),
-            h('button', {
-              type: 'button',
-              className: '__md_btn' + (tab === 'trash' ? ' __md_btnPrimary' : ''),
-              onClick: function () { setTab(tab === 'trash' ? 'sessions' : 'trash'); }
-            }, t('tabTrash') + ' (' + (trash.entries.length || 0) + ')'),
-            h('button', {
-              type: 'button',
-              className: '__md_btn',
-              title: t('exit'),
-              onClick: function () {
-                try {
-                  if (ctx && ctx.layout && typeof ctx.layout.selectPanel === 'function') ctx.layout.selectPanel(null);
-                } catch (error) { /* the host may gate panel switching */ }
-              }
-            }, '✕ ' + t('exit'))
+              state.scanning ? t('scanning') : t('scan'))
           )
         ),
 

@@ -148,6 +148,23 @@ test('archive refuses live and pinned sessions and archives the rest', async () 
   assert.deepEqual(state.archiveCalls, ['session-blank0001']);
 });
 
+test('an active session is archived through the stopActivity path instead of failing', async () => {
+  const built = setup();
+  const archived = [];
+  built.services.workspaceRegistry.archiveSession = async (id, options) => {
+    if (options && options.stopActivity === true) {
+      archived.push({ id, stopped: true });
+      return;
+    }
+    const error = new Error('the session is active (agent, jobs)');
+    error.name = 'WorkspaceActiveSessionError';
+    throw error;
+  };
+  const results = await built.service.archive(['session-blank0001']);
+  assert.equal(results[0].ok, true);
+  assert.deepEqual(archived, [{ id: 'session-blank0001', stopped: true }]);
+});
+
 test('trash archives, moves the log, detaches the workspace and records trash', async () => {
   const { home, rows, service, state } = setup();
   const results = await service.trash(['session-blank0001']);
