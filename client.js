@@ -651,9 +651,16 @@ window.__ModuleLoader__.load({
           background: 'rgba(20,26,36,.97)', color: '#dbe8fa', boxShadow: '0 12px 32px rgba(0,0,0,.5)', border: '1px solid #243044'
         }
       },
+        h('button', {
+          type: 'button',
+          className: '__md_btn',
+          title: t('clearAll'),
+          'aria-label': t('clearAll'),
+          style: { flex: '0 0 auto', width: 34, padding: '2px 0', background: 'transparent', color: '#93a1b8', borderColor: '#2c3a52' },
+          onClick: function () { setStore({ selectMode: false, selected: {} }); }
+        }, '×'),
         h('button', { type: 'button', className: '__md_btn', style: { flex: '1 1 auto', background: 'transparent', color: '#dbe8fa', borderColor: '#2c3a52' }, onClick: function () { setSelected(all.map(function (row) { return row.id; }), !allOn); } }, allOn ? t('clearAll') : t('selectAll')),
-        h('button', { type: 'button', className: '__md_btn', style: { flex: '1 1 auto', color: '#fff', borderColor: '#2c3a52', background: count > 0 ? '#a33a33' : 'transparent' }, disabled: count === 0, onClick: function () { openDeleteDialog(Object.keys(store.get().selected)); } }, t('deleteSelected') + (count > 0 ? ' (' + count + ')' : '')),
-        h('button', { type: 'button', className: '__md_btn', style: { background: 'transparent', color: '#93a1b8', borderColor: '#2c3a52' }, onClick: function () { setStore({ selectMode: false, selected: {} }); } }, '×')
+        h('button', { type: 'button', className: '__md_btn', style: { flex: '1 1 auto', color: '#fff', borderColor: '#2c3a52', background: count > 0 ? '#a33a33' : 'transparent' }, disabled: count === 0, onClick: function () { openDeleteDialog(Object.keys(store.get().selected)); } }, t('deleteSelected') + (count > 0 ? ' (' + count + ')' : ''))
       );
     }
 
@@ -831,15 +838,24 @@ window.__ModuleLoader__.load({
         ),
 
         tab === 'sessions' ? h('div', { className: '__md_toolbar' },
-          h('button', {
+          state.selectMode ? h('button', {
             type: 'button',
-            className: '__md_btn' + (state.selectMode ? ' __md_btnActive' : ''),
+            className: '__md_btn',
+            title: t('clearAll'),
+            'aria-label': t('clearAll'),
             onClick: function () {
-              var next = !state.selectMode;
-              setStore({ selectMode: next });
-              if (!next) clearSelected();
+              setStore({ selectMode: false });
+              clearSelected();
             }
-          }, (state.selectMode ? '✓ ' : '') + t('selectMode')),
+          }, '×') : null,
+          state.selectMode ? null : h('button', {
+            type: 'button',
+            className: '__md_btn',
+            onClick: function () {
+              setStore({ selectMode: true });
+              if (!store.get().scan) void runScan(false);
+            }
+          }, t('selectMode')),
           state.selectMode ? h('button', { type: 'button', className: '__md_btn', onClick: function () { setSelected(all.map(function (row) { return row.id; }), !allOn); } }, allOn ? t('clearAll') : t('selectAll')) : null,
           state.selectMode && count > 0 ? h('button', {
             type: 'button',
