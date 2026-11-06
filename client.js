@@ -370,68 +370,79 @@ window.__ModuleLoader__.load({
     }
 
     var CSS = [
-      'html .__md_page{display:flex;flex-direction:column;gap:14px;max-width:1040px;height:100%;overflow-y:auto;overflow-x:hidden;padding:20px 24px;font-size:13px;box-sizing:border-box;background:linear-gradient(180deg,#f2f8ff 0%,#e6f0ff 100%);color:#122a46}',
-      'html[data-ds-dark-theme] .__md_page{background:linear-gradient(180deg,#0f1b2d 0%,#0b1524 100%);color:#dbe7f7}',
+      'html .__md_page{display:flex;flex-direction:column;gap:14px;max-width:1060px;height:100%;overflow-y:auto;overflow-x:hidden;padding:20px 24px 28px;font-size:13px;box-sizing:border-box;color:#0f2d4d;',
+      'background:linear-gradient(180deg,#8fd0ff 0%,#bfe6ff 26%,#e6f6ff 62%,#f7fcff 100%);background-attachment:local}',
+      'html .__md_page{--md-ink:#0f2d4d;--md-ink2:#4b6f95;--md-card:rgba(255,255,255,.92);--md-line:#cfe6fb;--md-accent:#1f7ae0;--md-accent2:#48b4ff}',
+      'html[data-ds-dark-theme] .__md_page{--md-ink:#e6f1fb;--md-ink2:#9db8d4;--md-card:rgba(18,34,52,.88);--md-line:#294763;--md-accent:#4aa3ff;--md-accent2:#7cc6ff;',
+      'background:linear-gradient(180deg,#0b1a2c 0%,#102a44 40%,#0d2033 100%)}',
       '.__md_page::-webkit-scrollbar{width:10px}',
-      '.__md_page::-webkit-scrollbar-thumb{background:rgba(90,130,190,.4);border-radius:6px}',
-      '.__md_sticky{position:sticky;top:-20px;z-index:3;display:flex;flex-direction:column;gap:10px;padding:20px 0 10px;background:inherit}',
+      '.__md_page::-webkit-scrollbar-thumb{background:rgba(60,120,190,.35);border-radius:6px}',
+      '.__md_sticky{position:sticky;top:-20px;z-index:4;display:flex;flex-direction:column;gap:10px;padding:20px 0 10px;',
+      'background:linear-gradient(180deg,rgba(143,208,255,.96) 0%,rgba(191,230,255,.9) 70%,rgba(230,246,255,0) 100%)}',
+      'html[data-ds-dark-theme] .__md_sticky{background:linear-gradient(180deg,rgba(11,26,44,.96) 0%,rgba(16,42,68,.85) 70%,rgba(13,32,51,0) 100%)}',
       '.__md_head{display:flex;align-items:center;gap:12px}',
       '.__md_headText{flex:1 1 auto;min-width:0}',
-      '.__md_title{font-size:17px;font-weight:700;margin:0;letter-spacing:.2px}',
-      '.__md_title:before{content:"";display:inline-block;width:4px;height:16px;border-radius:2px;background:#2f6fed;margin-right:8px;vertical-align:-2px}',
-      '.__md_sub{margin:5px 0 0;font-size:12px;color:#54739a}',
-      'html[data-ds-dark-theme] .__md_sub{color:#8fa8c8}',
+      '.__md_title{font-size:19px;font-weight:800;margin:0;letter-spacing:.3px;color:var(--md-ink)}',
+      '.__md_title:before{content:"";display:inline-block;width:14px;height:14px;border-radius:5px;margin-right:9px;vertical-align:-1px;',
+      'background:linear-gradient(135deg,var(--md-accent),var(--md-accent2));box-shadow:0 3px 8px rgba(31,122,224,.35)}',
+      '.__md_sub{margin:5px 0 0;font-size:12px;color:var(--md-ink2)}',
       '.__md_row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}',
-      '.__md_btn{border:1px solid #bcd4f2;background:#fff;color:#1b3f68;border-radius:10px;padding:7px 15px;font:inherit;font-size:12px;cursor:pointer;white-space:nowrap;box-shadow:0 1px 2px rgba(24,70,130,.06);transition:transform .08s ease,border-color .15s,color .15s}',
-      'html[data-ds-dark-theme] .__md_btn{background:#16263c;border-color:#2b4768;color:#dbe7f7}',
-      '.__md_btn:hover:not(:disabled){border-color:#2f6fed;color:#1d5fd1;transform:translateY(-1px)}',
-      '.__md_btn:active:not(:disabled){transform:translateY(0)}',
+      '.__md_btn{border:1px solid var(--md-line);background:var(--md-card);color:var(--md-ink);border-radius:11px;padding:7px 15px;font:inherit;font-size:12px;cursor:pointer;white-space:nowrap;',
+      'box-shadow:0 2px 6px rgba(23,74,130,.08);transition:transform .08s ease,border-color .15s,color .15s,background .15s;backdrop-filter:blur(6px)}',
+      '.__md_btn:hover:not(:disabled){border-color:var(--md-accent);color:var(--md-accent);transform:translateY(-1px)}',
       '.__md_btn:disabled{opacity:.45;cursor:default;box-shadow:none}',
-      '.__md_btnPrimary{border-color:#2f6fed;background:linear-gradient(180deg,#3d7bf5,#2f6fed);color:#fff;font-weight:600}',
-      '.__md_btnPrimary:hover:not(:disabled){color:#fff;border-color:#1d5fd1}',
-      '.__md_btnDanger{border-color:#e7a49c;color:#c0392b;background:#fff6f5}',
-      '.__md_btnExit{order:-1;background:#eef5ff;border-color:#cfe0f7;color:#2a5488;font-weight:600}',
-      'html[data-ds-dark-theme] .__md_btnExit{background:#17293f;border-color:#2b4768;color:#bcd4f2}',
-      '.__md_tabs{display:inline-flex;gap:4px;padding:4px;border-radius:12px;background:#dbe9ff;width:max-content}',
-      'html[data-ds-dark-theme] .__md_tabs{background:#16263c}',
-      '.__md_tab{border:none;background:transparent;color:#3a5b82;font:inherit;font-size:12px;padding:7px 16px;border-radius:9px;cursor:pointer;transition:background .15s,color .15s}',
-      '.__md_tabOn{background:#fff;color:#12467f;font-weight:600;box-shadow:0 1px 4px rgba(20,60,120,.18)}',
-      'html[data-ds-dark-theme] .__md_tabOn{background:#22405f;color:#eaf3ff}',
-      '.__md_list{border:1px solid #d5e5f8;border-radius:14px;overflow-y:auto;overflow-x:hidden;background:#fff;max-height:calc(100vh - 320px);min-height:140px;box-shadow:0 6px 18px rgba(30,80,150,.07)}',
-      'html[data-ds-dark-theme] .__md_list{background:#132238;border-color:#26405f;box-shadow:none}',
-      '.__md_line{display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:center;padding:10px 14px;border-top:1px solid #eef4fc;transition:background .12s}',
-      '.__md_line:hover{background:#f6faff}',
-      'html[data-ds-dark-theme] .__md_line{border-top-color:#1d3149}',
-      'html[data-ds-dark-theme] .__md_line:hover{background:#16263c}',
-      '.__md_line:first-child{border-top:none}',
-      '.__md_lineHead{font-size:11px;color:#5b7899;background:#f4f9ff;letter-spacing:.4px}',
-      'html[data-ds-dark-theme] .__md_lineHead{background:#16263c;color:#8fa8c8}',
-      '.__md_lineOn{background:#e7f1ff}',
-      'html[data-ds-dark-theme] .__md_lineOn{background:#1b3352}',
-      '.__md_item{min-width:0}',
-      '.__md_itemTitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:500}',
-      '.__md_itemMeta{font-size:11px;color:#5b7899;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}',
-      'html[data-ds-dark-theme] .__md_itemMeta{color:#8fa8c8}',
-      '.__md_right{display:flex;align-items:center;gap:10px}',
-      '.__md_time{font-size:11px;color:#5b7899;white-space:nowrap;min-width:64px;text-align:right}',
-      '.__md_empty{padding:28px;text-align:center;color:#6b87a8;font-size:12px}',
-      '.__md_notice{font-size:12px;color:#1d5f8a;background:#eaf4ff;border:1px solid #cfe3fb;border-radius:10px;padding:8px 12px;white-space:pre-wrap}',
-      '.__md_err{font-size:12px;color:#b42318;background:#fff5f4;border:1px solid #f3cfc9;border-radius:10px;padding:8px 12px;white-space:pre-wrap}',
-      '.__md_check{accent-color:#2f6fed;cursor:pointer;width:15px;height:15px}',
-      '.__md_iconBtn{border:none;background:none;color:#6a86a8;cursor:pointer;padding:3px;border-radius:7px;display:inline-flex;align-items:center}',
-      '.__md_iconBtn:hover{color:#c0392b;background:#fdeceb}',
-      '.__md_mask{position:fixed;inset:0;background:rgba(8,26,54,.5);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;z-index:1000}',
-      '.__md_dialog{width:min(560px,92vw);background:#fbfdff;color:#122a46;border:1px solid #d5e5f8;border-radius:18px;padding:20px 22px;display:flex;flex-direction:column;gap:12px;box-shadow:0 24px 60px rgba(8,30,70,.35)}',
-      'html[data-ds-dark-theme] .__md_dialog{background:#132238;color:#dbe7f7;border-color:#26405f}',
-      '.__md_dialogTitle{font-size:15px;font-weight:700;margin:0}',
-      '.__md_dialogBody{font-size:12px;color:#456a94;white-space:pre-wrap;margin:0;line-height:1.6}',
-      'html[data-ds-dark-theme] .__md_dialogBody{color:#8fa8c8}',
-      '.__md_dialogList{max-height:150px;overflow:auto;border:1px solid #d5e5f8;border-radius:12px;padding:8px 12px;font-size:12px;background:#fff}',
+      '.__md_btnPrimary{border-color:transparent;background:linear-gradient(135deg,var(--md-accent),var(--md-accent2));color:#fff;font-weight:600;box-shadow:0 6px 16px rgba(31,122,224,.28)}',
+      '.__md_btnPrimary:hover:not(:disabled){color:#fff;border-color:transparent}',
+      '.__md_btnDanger{border-color:#f0b9b2;color:#c0392b;background:var(--md-card)}',
+      '.__md_btnSoft{border-color:#bfe0ff;color:#1f6fc4;background:rgba(240,249,255,.95)}',
+      '.__md_btnActive{border-color:var(--md-accent);color:var(--md-accent);background:rgba(255,255,255,.98)}',
+      '.__md_btnExit{border-color:transparent;background:rgba(255,255,255,.75);color:#1f6fc4;font-weight:700;box-shadow:none}',
+      'html[data-ds-dark-theme] .__md_btnExit{background:rgba(20,40,62,.9);color:#bfe0ff}',
+      '.__md_metaBar{display:flex;gap:10px;flex-wrap:wrap}',
+      '.__md_stat{display:flex;align-items:baseline;gap:6px;padding:7px 14px;border-radius:12px;background:var(--md-card);border:1px solid var(--md-line);',
+      'box-shadow:0 4px 14px rgba(23,74,130,.08);backdrop-filter:blur(6px)}',
+      '.__md_stat b{font-size:16px;font-weight:800;color:var(--md-ink);font-variant-numeric:tabular-nums}',
+      '.__md_stat i{font-style:normal;font-size:11px;color:var(--md-ink2)}',
+      '.__md_tabs{display:inline-flex;gap:4px;padding:4px;border-radius:13px;background:rgba(255,255,255,.55);width:max-content;border:1px solid var(--md-line);backdrop-filter:blur(8px)}',
+      'html[data-ds-dark-theme] .__md_tabs{background:rgba(20,42,66,.7)}',
+      '.__md_tab{border:none;background:transparent;color:var(--md-ink2);font:inherit;font-size:12px;padding:7px 18px;border-radius:10px;cursor:pointer;font-weight:600;transition:background .15s,color .15s}',
+      '.__md_tabOn{background:#fff;color:var(--md-accent);box-shadow:0 2px 8px rgba(23,74,130,.14)}',
+      'html[data-ds-dark-theme] .__md_tabOn{background:#1d3b5a;color:#bfe0ff}',
+      '.__md_toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:4px 2px}',
+      '.__md_list{display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 340px);overflow-y:auto;padding:2px;min-height:160px}',
+      '.__md_card{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:14px;background:var(--md-card);border:1px solid var(--md-line);',
+      'box-shadow:0 4px 16px rgba(23,74,130,.07);cursor:default;transition:transform .1s ease,box-shadow .15s,border-color .15s;backdrop-filter:blur(8px)}',
+      '.__md_card:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(23,74,130,.13);border-color:#a9d3f7}',
+      '.__md_cardOn{border-color:var(--md-accent);box-shadow:0 0 0 2px rgba(31,122,224,.18),0 8px 22px rgba(23,74,130,.12)}',
+      '.__md_avatar{width:34px;height:34px;border-radius:11px;flex:none;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#fff;',
+      'background:linear-gradient(135deg,#5ab6ff,#1f7ae0);box-shadow:0 4px 10px rgba(31,122,224,.3)}',
+      '.__md_item{min-width:0;flex:1 1 auto}',
+      '.__md_itemTitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:600;color:var(--md-ink)}',
+      '.__md_itemMeta{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:11px;color:var(--md-ink2);overflow:hidden;white-space:nowrap}',
+      '.__md_tag{padding:1px 7px;border-radius:7px;background:rgba(120,190,255,.18);color:#2a6aa8;max-width:220px;overflow:hidden;text-overflow:ellipsis}',
+      'html[data-ds-dark-theme] .__md_tag{background:rgba(90,160,230,.18);color:#a9cdf0}',
+      '.__md_dot{opacity:.45}',
+      '.__md_right{display:flex;align-items:center;gap:8px;flex:none}',
+      '.__md_pill{font-size:11px;color:var(--md-ink2);padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.7);border:1px solid var(--md-line);white-space:nowrap}',
+      'html[data-ds-dark-theme] .__md_pill{background:rgba(20,42,66,.7)}',
+      '.__md_empty{padding:38px 16px;text-align:center;color:var(--md-ink2);font-size:12px;display:flex;flex-direction:column;align-items:center}',
+      '.__md_notice{font-size:12px;color:#135a8f;background:rgba(255,255,255,.9);border:1px solid #bfe0ff;border-radius:12px;padding:9px 13px;white-space:pre-wrap}',
+      '.__md_err{font-size:12px;color:#b42318;background:rgba(255,246,245,.95);border:1px solid #f5cdc7;border-radius:12px;padding:9px 13px;white-space:pre-wrap}',
+      '.__md_hint{font-size:11px;color:var(--md-ink2)}',
+      '.__md_check{accent-color:var(--md-accent);cursor:pointer;width:16px;height:16px;flex:none}',
+      '.__md_iconBtn{border:none;background:rgba(255,255,255,.6);color:#7c98b6;cursor:pointer;padding:5px;border-radius:9px;display:inline-flex;align-items:center;transition:color .15s,background .15s}',
+      '.__md_iconBtn:hover{color:#c0392b;background:#ffefed}',
+      '.__md_mask{position:fixed;inset:0;background:rgba(8,32,60,.45);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:1000}',
+      '.__md_dialog{width:min(560px,92vw);background:linear-gradient(180deg,#ffffff,#f4faff);color:#0f2d4d;border:1px solid #cfe6fb;border-radius:20px;padding:22px 24px;display:flex;flex-direction:column;gap:12px;box-shadow:0 28px 70px rgba(8,40,80,.38)}',
+      'html[data-ds-dark-theme] .__md_dialog{background:linear-gradient(180deg,#12233a,#0f1f33);color:#e6f1fb;border-color:#294763}',
+      '.__md_dialogTitle{font-size:16px;font-weight:800;margin:0}',
+      '.__md_dialogBody{font-size:12px;color:#3f6a94;white-space:pre-wrap;margin:0;line-height:1.65}',
+      'html[data-ds-dark-theme] .__md_dialogBody{color:#9db8d4}',
+      '.__md_dialogList{max-height:150px;overflow:auto;border:1px solid #d6e9fb;border-radius:12px;padding:8px 12px;font-size:12px;background:#fff}',
       '.__md_dialogList div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:2px 0}',
-      '.__md_opt{display:flex;gap:9px;align-items:flex-start;font-size:12px;padding:10px 12px;border:1px solid #e3eefb;border-radius:12px;background:#f7fbff}',
-      'html[data-ds-dark-theme] .__md_opt{background:#16263c;border-color:#23405f}',
-      '.__md_hint{font-size:11px;color:#5b7899;margin-top:2px}',
-      '.__md_files{margin:0;padding-left:18px;font-size:11px;color:#5b7899;max-height:120px;overflow:auto}'
+      '.__md_opt{display:flex;gap:10px;align-items:flex-start;font-size:12px;padding:11px 13px;border:1px solid #d6e9fb;border-radius:13px;background:rgba(244,250,255,.9)}',
+      'html[data-ds-dark-theme] .__md_opt{background:rgba(20,42,66,.7);border-color:#294763}',
+      '.__md_files{margin:0;padding-left:18px;font-size:11px;color:#4b6f95;max-height:120px;overflow:auto}'
     ].join('');
 
     function installStyles() {
@@ -652,12 +663,30 @@ window.__ModuleLoader__.load({
     }
 
     // ── manager page ──────────────────────────────────────────────────────
+    function avatarOf(title) {
+      var text = String(title || '').trim();
+      if (!text) return '·';
+      return text.charAt(0).toUpperCase();
+    }
+
+    function EmptyState(text) {
+      return h('div', { className: '__md_empty' },
+        h('svg', { width: 56, height: 40, viewBox: '0 0 56 40', fill: 'none', 'aria-hidden': 'true' },
+          h('ellipse', { cx: 28, cy: 33, rx: 20, ry: 3.5, fill: '#cfe4fb' }),
+          h('path', { d: 'M15 30c-4.4 0-8-3.2-8-7.2 0-3.7 3-6.7 6.8-7.1C15.4 11.5 19.6 8 24.7 8c5.9 0 10.7 4.4 11.1 9.9 3.6.5 6.3 3.3 6.3 6.7 0 3.8-3.4 6.9-7.6 6.9H15z', fill: '#e8f4ff', stroke: '#9dc7ef', 'stroke-width': 1.4 })
+        ),
+        h('div', { style: { marginTop: 10 } }, text)
+      );
+    }
+
+    function RowAvatar(title) {
+      return h('div', { className: '__md_avatar', 'aria-hidden': 'true' }, avatarOf(title));
+    }
+
     function Page(props) {
       var state = useStore();
       var t = props.t;
       var ctx = props.ctx;
-      // UI-only state stays local: one click must repaint this page even if the
-      // shared store's subscribers are not wired the way we expect.
       var tabPair = react.useState('sessions');
       var tab = tabPair[0];
       var setTab = tabPair[1];
@@ -677,7 +706,7 @@ window.__ModuleLoader__.load({
       });
       var rows = all.slice(0, limit);
       var allOn = all.length > 0 && all.every(function (row) { return state.selected[row.id]; });
-      var count = selectionCount(state);
+      var count = Object.keys(state.selected).length;
       var trashIds = trash.entries.map(function (entry) { return entry.trashId; });
       var trashAllOn = trashIds.length > 0 && trashIds.every(function (id) { return state.trashSelected[id]; });
       var trashCount = Object.keys(state.trashSelected).length;
@@ -688,153 +717,167 @@ window.__ModuleLoader__.load({
         setStore({ trashSelected: next });
       }
 
+      var sessionCards = rows.map(function (row) {
+        var id = row.id;
+        var on = state.selected[id] === true;
+        var title = titleOf(ctx, id) || row.title || t('noTitle');
+        var when = updatedOf(ctx, id) || row.createdAt || 0;
+        return h('div', {
+          key: id,
+          className: '__md_card' + (on ? ' __md_cardOn' : ''),
+          onClick: function () { if (state.selectMode) toggleId(id); }
+        },
+          state.selectMode
+            ? h('input', { type: 'checkbox', className: '__md_check', checked: on, onChange: function () { toggleId(id); }, onClick: function (e) { e.stopPropagation(); } })
+            : null,
+          RowAvatar(title),
+          h('div', { className: '__md_item' },
+            h('div', { className: '__md_itemTitle' }, title),
+            h('div', { className: '__md_itemMeta' },
+              h('span', { className: '__md_tag' }, row.workspaceTitle || t('unregistered')),
+              h('span', { className: '__md_dot' }, '·'),
+              h('span', null, fmtBytes(row.sizeBytes))
+            )
+          ),
+          h('div', { className: '__md_right' },
+            h('span', { className: '__md_pill', title: fmtDate(when) }, when ? relTime(when, now) : '—'),
+            h('button', {
+              type: 'button',
+              className: '__md_iconBtn',
+              title: t('deleteOne'),
+              'aria-label': t('deleteOne'),
+              onClick: function (event) { event.stopPropagation(); openDeleteDialog([id]); }
+            }, h('svg', { width: 15, height: 15, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' },
+              h('path', { d: 'M3 4h10M6.5 4V2.8h3V4M4.4 4l.5 9.1h6.2l.5-9.1', stroke: 'currentColor', 'stroke-width': 1.3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })
+            ))
+          )
+        );
+      });
+
+      var trashCards = trash.entries.slice().sort(function (a, b) {
+        return (b.deletedAt || 0) - (a.deletedAt || 0);
+      }).map(function (entry) {
+        var on = state.trashSelected[entry.trashId] === true;
+        var title = entry.title || titleOf(ctx, entry.sessionId) || t('noTitle');
+        var fileCount = Array.isArray(entry.files) ? entry.files.length : 0;
+        var extraCount = Array.isArray(entry.extraFiles) ? entry.extraFiles.length : 0;
+        return h('div', { key: entry.trashId, className: '__md_card' + (on ? ' __md_cardOn' : '') },
+          h('input', { type: 'checkbox', className: '__md_check', checked: on, onChange: function () { toggleTrash(entry.trashId); } }),
+          RowAvatar(title),
+          h('div', { className: '__md_item' },
+            h('div', { className: '__md_itemTitle' }, title),
+            h('div', { className: '__md_itemMeta' },
+              h('span', { className: '__md_tag' }, fmtBytes(entry.sizeBytes)),
+              fileCount + extraCount > 0 ? h('span', { className: '__md_dot' }, '·') : null,
+              fileCount + extraCount > 0 ? h('span', { className: '__md_tag' }, interp(t('filesBadge'), { n: fileCount + extraCount })) : null
+            )
+          ),
+          h('div', { className: '__md_right' },
+            h('span', { className: '__md_pill', title: fmtDate(entry.deletedAt) }, entry.deletedAt ? relTime(entry.deletedAt, now) : '—'),
+            h('button', {
+              type: 'button',
+              className: '__md_btn __md_btnSoft',
+              disabled: state.busy === 'restore',
+              onClick: function () { void restoreTrash([entry.trashId]); }
+            }, t('restoreSelected'))
+          )
+        );
+      });
+
       return h('div', { className: '__md_page' },
         h('div', { className: '__md_sticky' },
-        h('div', { className: '__md_head' },
-          h('button', {
-            type: 'button',
-            className: '__md_btn __md_btnExit',
-            title: t('exit'),
-            onClick: function () {
-              try {
-                if (ctx && ctx.layout && typeof ctx.layout.selectPanel === 'function') ctx.layout.selectPanel(null);
-              } catch (error) { /* the host may gate panel switching */ }
-            }
-          }, '← ' + t('exit')),
-          h('div', { className: '__md_headText' },
-            h('p', { className: '__md_title' }, t('title')),
-            h('p', { className: '__md_sub' }, t('subtitle'))
-          ),
-          h('div', { className: '__md_row' },
-            h('button', { type: 'button', className: '__md_btn', onClick: function () { setTab(tab === 'trash' ? 'sessions' : 'trash'); } },
-              t('tabTrash') + ' (' + (trash.entries.length || 0) + ')'),
-            h('button', { type: 'button', className: '__md_btn __md_btnPrimary', disabled: state.scanning, onClick: function () { void runScan(true); } },
-              state.scanning ? t('scanning') : t('scan'))
-          )
-        ),
-
-        h('div', { className: '__md_row', style: { gap: 14 } },
-          h('span', { className: '__md_itemMeta' }, t('total') + ' ' + (scan && scan.stats ? scan.stats.total : '—')),
-          h('span', { className: '__md_itemMeta' }, t('listed') + ' ' + all.length),
-          h('span', { className: '__md_itemMeta' }, t('trashCount') + ' ' + (trash.entries.length || 0))
-        ),
-
-        h('div', { className: '__md_tabs' },
-          h('button', {
-            type: 'button',
-            className: '__md_tab' + (tab === 'sessions' ? ' __md_tabOn' : ''),
-            onPointerDown: function () { setTab('sessions'); },
-            onClick: function () { setTab('sessions'); }
-          }, t('tabSessions')),
-          h('button', {
-            type: 'button',
-            className: '__md_tab' + (tab === 'trash' ? ' __md_tabOn' : ''),
-            onPointerDown: function () { setTab('trash'); },
-            onClick: function () { setTab('trash'); }
-          }, t('tabTrash') + ' (' + (trash.entries.length || 0) + ')')
-        ),
-        h('div', { className: '__md_row' }, state.notice ? h('div', { className: '__md_notice' }, state.notice) : null),
-        ),
-        state.error ? h('div', { className: '__md_err', role: 'alert' }, t('loadFailed') + ': ' + state.error) : null,
-
-        tab === 'sessions' ? h(react.Fragment, null,
-          h('div', { className: '__md_row' },
+          h('div', { className: '__md_head' },
             h('button', {
               type: 'button',
-              className: '__md_btn',
+              className: '__md_btn __md_btnExit',
+              title: t('exit'),
               onClick: function () {
-                var next = !state.selectMode;
-                setStore({ selectMode: next });
-                if (!next) clearSelected();
+                try {
+                  if (ctx && ctx.layout && typeof ctx.layout.selectPanel === 'function') ctx.layout.selectPanel(null);
+                } catch (error) { /* the host may gate panel switching */ }
               }
-            }, (state.selectMode ? '✓ ' : '☰ ') + t('selectMode')),
-            state.selectMode ? h('button', { type: 'button', className: '__md_btn', onClick: function () { setSelected(all.map(function (row) { return row.id; }), !allOn); } }, allOn ? t('clearAll') : t('selectAll')) : null,
-            state.selectMode ? h('button', {
-              type: 'button',
-              className: '__md_btn __md_btnDanger',
-              disabled: count === 0,
-              onClick: function () { openDeleteDialog(Object.keys(store.get().selected)); }
-            }, t('deleteSelected') + (count > 0 ? ' (' + count + ')' : '')) : null,
-            h('span', { style: { flex: '1 1 auto' } }),
-            h('span', { className: '__md_itemMeta' }, t('scanHint'))
-          ),
-          h('div', { className: '__md_list' },
-            h('div', { className: '__md_line __md_lineHead' },
-              h('span', null, state.selectMode ? '☑' : ''),
-              h('span', null, t('colTitle')),
-              h('span', null, t('colTime'))
+            }, '← ' + t('exit')),
+            h('div', { className: '__md_headText' },
+              h('p', { className: '__md_title' }, t('title')),
+              h('p', { className: '__md_sub' }, t('subtitle'))
             ),
-            rows.length === 0
-              ? h('div', { className: '__md_empty' }, state.scanning ? t('scanning') : t('empty'))
-              : rows.map(function (row) {
-                var id = row.id;
-                var on = state.selected[id] === true;
-                var title = titleOf(ctx, id) || row.title || t('noTitle');
-                var when = updatedOf(ctx, id) || row.createdAt || 0;
-                var timeText = when ? relTime(when, now) : '—';
-                return h('div', { key: id, className: '__md_line' + (on ? ' __md_lineOn' : ''), onClick: function () { if (state.selectMode) toggleId(id); } },
-                  h('span', null, state.selectMode ? h('input', { type: 'checkbox', className: '__md_check', checked: on, onChange: function () { toggleId(id); }, onClick: function (e) { e.stopPropagation(); } }) : null),
-                  h('div', { className: '__md_item' },
-                    h('div', { className: '__md_itemTitle' }, title),
-                    h('div', { className: '__md_itemMeta' }, (row.workspaceTitle || t('unregistered')) + ' · ' + fmtBytes(row.sizeBytes))
-                  ),
-                  h('div', { className: '__md_right' },
-                    h('span', { className: '__md_time', title: fmtDate(when) }, timeText),
-                    h('button', {
-                      type: 'button',
-                      className: '__md_iconBtn',
-                      title: t('deleteOne'),
-                      onClick: function (event) { event.stopPropagation(); openDeleteDialog([id]); }
-                    }, h('svg', { width: 14, height: 14, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' },
-                      h('path', { d: 'M3 4h10M6.5 4V2.8h3V4M4.4 4l.5 9.1h6.2l.5-9.1', stroke: 'currentColor', 'stroke-width': 1.3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })
-                    ))
-                  )
-                );
-              }),
-            all.length > rows.length ? h('div', { style: { padding: '8px 10px', textAlign: 'center' } },
-              h('button', { type: 'button', className: '__md_btn', onClick: function () { setLimit(limit + 50); } },
-                t('more') + ' (' + (all.length - rows.length) + ')')) : null
-          )
+            h('div', { className: '__md_row' },
+              h('button', { type: 'button', className: '__md_btn', onClick: function () { setTab(tab === 'trash' ? 'sessions' : 'trash'); } },
+                t('tabTrash') + ' (' + (trash.entries.length || 0) + ')'),
+              h('button', { type: 'button', className: '__md_btn __md_btnPrimary', disabled: state.scanning, onClick: function () { void runScan(true); } },
+                state.scanning ? t('scanning') : t('scan'))
+            )
+          ),
+          h('div', { className: '__md_metaBar' },
+            h('span', { className: '__md_stat' }, h('b', null, String(scan && scan.stats ? scan.stats.total : '—')), h('i', null, t('total'))),
+            h('span', { className: '__md_stat' }, h('b', null, String(all.length)), h('i', null, t('listed'))),
+            h('span', { className: '__md_stat' }, h('b', null, String(trash.entries.length || 0)), h('i', null, t('trashCount')))
+          ),
+          h('div', { className: '__md_tabs' },
+            h('button', {
+              type: 'button',
+              className: '__md_tab' + (tab === 'sessions' ? ' __md_tabOn' : ''),
+              onPointerDown: function () { setTab('sessions'); },
+              onClick: function () { setTab('sessions'); }
+            }, t('tabSessions')),
+            h('button', {
+              type: 'button',
+              className: '__md_tab' + (tab === 'trash' ? ' __md_tabOn' : ''),
+              onPointerDown: function () { setTab('trash'); },
+              onClick: function () { setTab('trash'); }
+            }, t('tabTrash') + ' (' + (trash.entries.length || 0) + ')')
+          ),
+          state.notice ? h('div', { className: '__md_notice' }, state.notice) : null,
+          state.error ? h('div', { className: '__md_err', role: 'alert' }, t('loadFailed') + ': ' + state.error) : null
+        ),
+
+        tab === 'sessions' ? h('div', { className: '__md_toolbar' },
+          h('button', {
+            type: 'button',
+            className: '__md_btn' + (state.selectMode ? ' __md_btnActive' : ''),
+            onClick: function () {
+              var next = !state.selectMode;
+              setStore({ selectMode: next });
+              if (!next) clearSelected();
+            }
+          }, (state.selectMode ? '✓ ' : '') + t('selectMode')),
+          state.selectMode ? h('button', { type: 'button', className: '__md_btn', onClick: function () { setSelected(all.map(function (row) { return row.id; }), !allOn); } }, allOn ? t('clearAll') : t('selectAll')) : null,
+          state.selectMode && count > 0 ? h('button', {
+            type: 'button',
+            className: '__md_btn __md_btnDanger',
+            onClick: function () { openDeleteDialog(Object.keys(store.get().selected)); }
+          }, t('deleteSelected') + ' (' + count + ')') : null,
+          h('span', { style: { flex: '1 1 auto' } }),
+          h('span', { className: '__md_hint' }, t('scanHint'))
         ) : null,
 
-        tab === 'trash' ? h(react.Fragment, null,
-          h('div', { className: '__md_row' },
-            h('button', {
-              type: 'button',
-              className: '__md_btn',
-              disabled: trashIds.length === 0,
-              onClick: function () {
-                var next = Object.assign({}, store.get().trashSelected);
-                var on = !trashAllOn;
-                trashIds.forEach(function (id) { if (on) next[id] = true; else delete next[id]; });
-                setStore({ trashSelected: next });
-              }
-            }, trashAllOn ? t('clearAll') : t('selectAll')),
-            h('button', { type: 'button', className: '__md_btn', disabled: trashCount === 0 || state.busy === 'restore', onClick: function () { void restoreTrash(Object.keys(store.get().trashSelected)); } },
-              t('restoreSelected') + (trashCount > 0 ? ' (' + trashCount + ')' : '')),
-            h('button', { type: 'button', className: '__md_btn __md_btnDanger', disabled: trashCount === 0, onClick: function () { openPurgeDialog(Object.keys(store.get().trashSelected)); } },
-              t('purgeSelected') + (trashCount > 0 ? ' (' + trashCount + ')' : ''))
-          ),
-          h('div', { className: '__md_list' },
-            h('div', { className: '__md_line __md_lineHead' }, h('span', null, '☑'), h('span', null, t('colTitle')), h('span', null, t('time'))),
-            trash.entries.length === 0
-              ? h('div', { className: '__md_empty' }, t('trashEmpty'))
-              : trash.entries.slice().sort(function (a, b) { return (b.deletedAt || 0) - (a.deletedAt || 0); }).map(function (entry) {
-                var on = state.trashSelected[entry.trashId] === true;
-                var fileCount = Array.isArray(entry.files) ? entry.files.length : 0;
-                return h('div', { key: entry.trashId, className: '__md_line' + (on ? ' __md_lineOn' : '') },
-                  h('input', { type: 'checkbox', className: '__md_check', checked: on, onChange: function () { toggleTrash(entry.trashId); } }),
-                  h('div', { className: '__md_item' },
-                    h('div', { className: '__md_itemTitle' }, entry.title || titleOf(ctx, entry.sessionId) || t('noTitle')),
-                    h('div', { className: '__md_itemMeta' }, entry.sessionId + ' · ' + fmtBytes(entry.sizeBytes) + (fileCount > 0 ? ' · ' + interp(t('filesBadge'), { n: fileCount }) : ''))
-                  ),
-                  h('div', { className: '__md_right' },
-                    h('span', { className: '__md_time', title: fmtDate(entry.deletedAt) }, relTime(entry.deletedAt, now)),
-                    h('button', { type: 'button', className: '__md_btn', disabled: state.busy === 'restore', onClick: function () { void restoreTrash([entry.trashId]); } }, t('restoreSelected'))
-                  )
-                );
-              })
-          )
+        tab === 'sessions' ? h('div', { className: '__md_list' },
+          rows.length === 0 ? EmptyState(state.scanning ? t('scanning') : t('empty')) : sessionCards,
+          all.length > rows.length ? h('div', { style: { padding: '12px 0', textAlign: 'center' } },
+            h('button', { type: 'button', className: '__md_btn', onClick: function () { setLimit(limit + 50); } },
+              t('more') + ' (' + (all.length - rows.length) + ')')) : null
+        ) : null,
+
+        tab === 'trash' ? h('div', { className: '__md_toolbar' },
+          h('button', {
+            type: 'button',
+            className: '__md_btn',
+            disabled: trashIds.length === 0,
+            onClick: function () {
+              var next = Object.assign({}, store.get().trashSelected);
+              var on = !trashAllOn;
+              trashIds.forEach(function (id) { if (on) next[id] = true; else delete next[id]; });
+              setStore({ trashSelected: next });
+            }
+          }, trashAllOn ? t('clearAll') : t('selectAll')),
+          h('button', { type: 'button', className: '__md_btn', disabled: trashCount === 0 || state.busy === 'restore', onClick: function () { void restoreTrash(Object.keys(store.get().trashSelected)); } },
+            t('restoreSelected') + (trashCount > 0 ? ' (' + trashCount + ')' : '')),
+          h('button', { type: 'button', className: '__md_btn __md_btnDanger', disabled: trashCount === 0, onClick: function () { openPurgeDialog(Object.keys(store.get().trashSelected)); } },
+            t('purgeSelected') + (trashCount > 0 ? ' (' + trashCount + ')' : ''))
+        ) : null,
+
+        tab === 'trash' ? h('div', { className: '__md_list' },
+          trash.entries.length === 0 ? EmptyState(t('trashEmpty')) : trashCards
         ) : null
       );
     }
