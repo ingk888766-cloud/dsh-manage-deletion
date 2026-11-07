@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.5] — 2026-11-07
+
+### Changed
+
+- 发布到 npm：包名 `dsh-manage-deletion`，`latest` 指向 1.3.5。
+- 与 1.3.4 代码相同，仅版本号前进，用于在 registry 首次落地后修正 `latest` 标签（新包首发会先生成 `0.0.0-stage` 占位）。
+
 ## [1.3.4] — 2026-11-07
 
 ### Fixed
