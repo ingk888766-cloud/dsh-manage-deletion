@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { zstdCompressSync } from 'node:zlib';
@@ -327,4 +327,42 @@ test('scan tolerates a host without workspaceRegistry', async () => {
   const report = await service.scan();
   assert.equal(report.stats.total, 1);
   assert.ok(report.warnings.some((warning) => warning.includes('workspaceRegistry')));
+});
+
+
+test('purge reports ids that are not in the trash as not-found', async () => {
+  const { service } = setup();
+  const results = await service.purge(['mw-bogus-id']);
+  assert.equal(results.length, 1);
+  assert.equal(results[0].ok, false);
+  assert.equal(results[0].code, 'not-found');
+});
+
+test('purge drops an orphan index row whose directory is already gone', async () => {
+  const { service, home } = setup();
+  const trashed = await service.trash(['session-blank0001']);
+  const trashId = trashed[0].trashId;
+  rmSync(join(home, 'manage-deletion', 'trash', trashId), { recursive: true, force: true });
+  const results = await service.purge([trashId]);
+  assert.equal(results[0].ok, true, 'missing directory must not pin the row');
+  assert.ok(results[0].code === 'purged' || results[0].code === 'already-gone', 'code=' + results[0].code);
+  const report = await service.scan();
+  assert.equal(report.trash.count, 0, 'orphan row removed from the index');
+});
+
+test('info scans files for every requested session and never sets a skip flag', async () => {
+  const { service, rows, services, home } = setup();
+  const written = join(home, 'projects', 'ws-demo', 'w.txt');
+  mkdirSync(join(home, 'projects', 'ws-demo'), { recursive: true });
+  writeFileSync(written, 'x');
+  services.sessionQuery.readSession = async () => [
+    { type: 'tool/call', data: { name: 'write', arguments: JSON.stringify({ file_path: written }) } }
+  ];
+  const out = await service.info(rows.map((row) => row.header.id));
+  assert.equal(out.length, 4);
+  for (const row of out) {
+    assert.equal('filesSkipped' in row, false);
+    assert.equal(row.files.length, 1, 'every selected session still gets its file list');
+    assert.ok(Array.isArray(row.otherFiles));
+  }
 });
