@@ -311,6 +311,7 @@ window.__ModuleLoader__.load({
         if (!current || current.ids.join('|') !== list.join('|')) return;
         setStore({
           pending: Object.assign({}, current, {
+            filesSkipped: filesSkipped,
             info: rows,
             files: files,
             otherFiles: otherFiles,
@@ -330,11 +331,19 @@ window.__ModuleLoader__.load({
       if (!pending) return;
       setStore({ busy: 'delete', error: '' });
       try {
-        var data = await api('trash', {
+        var payload = {
           ids: pending.ids,
           deleteFiles: pending.deleteFiles === true,
           deleteExtraFiles: pending.deleteExtraFiles === true
-        });
+        };
+        var data;
+        try {
+          data = await api('trash', payload);
+        } catch (firstError) {
+          if (!/清理操作/.test(String(firstError && firstError.message ? firstError.message : firstError))) throw firstError;
+          await new Promise(function (resolve) { setTimeout(resolve, 500); });
+          data = await api('trash', payload);
+        }
         var results = data.results || [];
         var ok = results.filter(function (row) { return row.ok; });
         var bad = results.filter(function (row) { return !row.ok; });
@@ -348,7 +357,7 @@ window.__ModuleLoader__.load({
           pending: null,
           notice: lines.join('\n'),
           selected: {},
-          toast: { kind: 'ok', text: interp('已移入回收站 {n} 个，可在「删除管理 → 回收站」还原。', { n: ok.length }) }
+          toast: { kind: bad.length > 0 ? 'warn' : 'ok', text: bad.length > 0 ? interp('删除 {ok} 个，失败 {n} 个：', { ok: ok.length, n: bad.length }) + (bad[0].message || bad[0].code || '') : interp('已移入回收站 {n} 个，可在「删除管理 → 回收站」还原。', { n: ok.length }) }
         });
         setTimeout(function () { setStore({ toast: null }); }, 8000);
         resyncSessions(ctx);
@@ -369,8 +378,29 @@ window.__ModuleLoader__.load({
       setStore({ busy: 'purge', error: '' });
       try {
         var data = await api('purge', { trashIds: pending.trashIds, confirm: true });
-        var ok = (data.results || []).filter(function (row) { return row.ok; });
-        setStore({ busy: '', pending: null, notice: interp('已彻底删除 {n} 项。', { n: ok.length }), trashSelected: {} });
+        var results = data.results || [];
+        var ok = results.filter(function (row) { return row.ok; });
+        var bad = results.filter(function (row) { return !row.ok; });
+        var lines = [interp('已彻底删除 {n} 项。', { n: ok.length })];
+        if (bad.length > 0) {
+          lines.push(interp('有 {n} 项没删掉：', { n: bad.length }));
+          bad.slice(0, 6).forEach(function (row) {
+            lines.push('· ' + (row.trashId || '') + ' — ' + (row.message || row.code || ''));
+          });
+        }
+        setStore({
+          busy: '',
+          pending: null,
+          notice: lines.join('\n'),
+          trashSelected: {},
+          toast: {
+            kind: bad.length > 0 ? 'warn' : 'ok',
+            text: bad.length > 0
+              ? interp('彻底删除 {ok} 项，失败 {n} 项（原因见页面提示）', { ok: ok.length, n: bad.length })
+              : interp('已彻底删除 {n} 项。', { n: ok.length })
+          }
+        });
+        setTimeout(function () { setStore({ toast: null }); }, 8000);
         resyncSessions(ctx);
         await runScan(true);
       } catch (error) {
