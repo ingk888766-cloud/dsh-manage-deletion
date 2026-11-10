@@ -163,6 +163,18 @@ window.__ModuleLoader__.load({
       toast: null
     });
 
+    async function refreshTrash() {
+      try {
+        var data = await api('trashList', {});
+        if (!data || !data.trash) return false;
+        var scan = store.get().scan;
+        setStore({ scan: Object.assign({}, scan || {}, { trash: data.trash }) });
+        return true;
+      } catch (error) {
+        return false;
+      }
+    }
+
     function resyncSessions(ctx) {
       try {
         var sessions = ctx.get('sessions');
@@ -359,8 +371,20 @@ window.__ModuleLoader__.load({
           toast: { kind: bad.length > 0 ? 'warn' : 'ok', text: bad.length > 0 ? interp('删除 {ok} 个，失败 {n} 个：', { ok: ok.length, n: bad.length }) + (bad[0].message || bad[0].code || '') : interp('已移入回收站 {n} 个，可在「删除管理 → 回收站」还原。', { n: ok.length }) }
         });
         setTimeout(function () { setStore({ toast: null }); }, 8000);
+        // Update the two lists we already have instead of rescanning 900+
+        // sessions: the deleted rows leave the list, the trash gains them.
+        var removed = {};
+        ok.forEach(function (row) { removed[row.id] = true; });
+        var scan = store.get().scan;
+        if (scan && Array.isArray(scan.sessions)) {
+          setStore({
+            scan: Object.assign({}, scan, {
+              sessions: scan.sessions.filter(function (row) { return !removed[row.id]; })
+            })
+          });
+        }
         resyncSessions(ctx);
-        await runScan(true);
+        await refreshTrash();
       } catch (error) {
         setStore({ busy: '', error: String(error && error.message ? error.message : error) });
       }
@@ -400,8 +424,7 @@ window.__ModuleLoader__.load({
           }
         });
         setTimeout(function () { setStore({ toast: null }); }, 8000);
-        resyncSessions(ctx);
-        await runScan(true);
+        await refreshTrash();
       } catch (error) {
         setStore({ busy: '', error: String(error && error.message ? error.message : error) });
       }
@@ -422,6 +445,7 @@ window.__ModuleLoader__.load({
           bad.slice(0, 5).forEach(function (row) { lines.push('· ' + (row.sessionId || row.trashId) + ' — ' + (row.message || '')); });
         }
         setStore({ busy: '', notice: lines.join('\n'), trashSelected: {} });
+        await refreshTrash();
         resyncSessions(ctx);
         await runScan(true);
       } catch (error) {
@@ -916,8 +940,8 @@ window.__ModuleLoader__.load({
             h('button', {
               type: 'button',
               className: '__md_tab' + (tab === 'trash' ? ' __md_tabOn' : ''),
-              onPointerDown: function () { setTab('trash'); void runScan(true); },
-              onClick: function () { setTab('trash'); void runScan(true); }
+              onPointerDown: function () { setTab('trash'); void refreshTrash(); },
+              onClick: function () { setTab('trash'); void refreshTrash(); }
             }, t('tabTrash') + ' (' + (trash.entries.length || 0) + ')')
           ),
           state.notice ? h('div', { className: '__md_notice' }, state.notice) : null,
@@ -966,7 +990,7 @@ window.__ModuleLoader__.load({
             className: '__md_btn',
             disabled: state.scanning,
             title: '重新读取回收站目录',
-            onClick: function () { void runScan(true); }
+            onClick: function () { void refreshTrash(); }
           }, state.scanning ? t('scanning') : '刷新回收站'),
           h('button', {
             type: 'button',

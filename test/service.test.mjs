@@ -377,3 +377,15 @@ test('deleting a session whose log is already gone cleans the leftovers instead 
   assert.equal(results[0].code, 'already-gone');
   assert.ok(state.detachCalls.includes(id), 'workspace membership released');
 });
+
+
+test('trashList reads only the trash index and matches scan counts', async () => {
+  const { service } = setup();
+  await service.trash(['session-blank0001']);
+  const list = await service.trashList();
+  const report = await service.scan();
+  assert.equal(list.count, 1);
+  assert.equal(list.count, report.trash.count);
+  assert.equal(list.entries[0].sessionId, 'session-blank0001');
+  assert.ok(list.bytes > 0);
+});
