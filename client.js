@@ -916,8 +916,8 @@ window.__ModuleLoader__.load({
             h('button', {
               type: 'button',
               className: '__md_tab' + (tab === 'trash' ? ' __md_tabOn' : ''),
-              onPointerDown: function () { setTab('trash'); },
-              onClick: function () { setTab('trash'); }
+              onPointerDown: function () { setTab('trash'); void runScan(true); },
+              onClick: function () { setTab('trash'); void runScan(true); }
             }, t('tabTrash') + ' (' + (trash.entries.length || 0) + ')')
           ),
           state.notice ? h('div', { className: '__md_notice' }, state.notice) : null,
@@ -961,6 +961,13 @@ window.__ModuleLoader__.load({
         ) : null,
 
         tab === 'trash' ? h('div', { className: '__md_toolbar' },
+          h('button', {
+            type: 'button',
+            className: '__md_btn',
+            disabled: state.scanning,
+            title: '重新读取回收站目录',
+            onClick: function () { void runScan(true); }
+          }, state.scanning ? t('scanning') : '刷新回收站'),
           h('button', {
             type: 'button',
             className: '__md_btn',

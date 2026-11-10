@@ -153,13 +153,13 @@ test('archive refuses running sessions, and unpins a pinned one before archiving
   assert.deepEqual(state.archiveCalls.sort(), ['session-blank0001', 'session-real00003']);
 });
 
-test('trash archives, moves the log, detaches the workspace and records trash', async () => {
+test('trash moves the log, detaches the workspace and records trash without an archive round-trip', async () => {
   const { home, rows, service, state } = setup();
   const results = await service.trash(['session-blank0001']);
   assert.equal(results[0].ok, true);
   assert.equal(results[0].code, 'trashed');
   assert.equal(existsSync(rows[0].dir), false, 'log directory moved away');
-  assert.equal(state.archiveCalls.includes('session-blank0001'), true);
+  assert.equal(state.archiveCalls.includes('session-blank0001'), false, 'no archive round-trip on delete');
   assert.deepEqual(state.detachCalls, ['session-blank0001']);
 
   const report = await service.scan();
@@ -365,4 +365,15 @@ test('info scans files for every requested session and never sets a skip flag', 
     assert.equal(row.files.length, 1, 'every selected session still gets its file list');
     assert.ok(Array.isArray(row.otherFiles));
   }
+});
+
+
+test('deleting a session whose log is already gone cleans the leftovers instead of failing', async () => {
+  const { service, rows, state } = setup();
+  const id = rows[0].header.id;
+  rmSync(rows[0].dir, { recursive: true, force: true });
+  const results = await service.trash([id]);
+  assert.equal(results[0].ok, true, 'a ghost row must not stay undeletable');
+  assert.equal(results[0].code, 'already-gone');
+  assert.ok(state.detachCalls.includes(id), 'workspace membership released');
 });
