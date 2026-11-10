@@ -514,6 +514,7 @@ window.__ModuleLoader__.load({
       '.__md_check{accent-color:var(--md-accent2);cursor:pointer;width:16px;height:16px;flex:none}',
       '.__md_iconBtn{border:none;background:rgba(32,40,54,.85);color:#8fa4c0;cursor:pointer;padding:6px;border-radius:11px;display:inline-flex;align-items:center;transition:color .18s,background .18s}',
       '.__md_iconBtn:hover{color:#f0a8a2;background:rgba(60,32,34,.9)}',
+      '.__md_iconBtnDanger{color:#d98b84}',
       '.__md_toast{position:fixed;right:20px;bottom:20px;z-index:1200;max-width:min(420px,90vw);display:flex;flex-direction:column;gap:10px;padding:14px 16px;border-radius:16px;background:rgba(23,28,38,.97);border:1px solid #2c4472;box-shadow:0 18px 48px rgba(0,0,0,.55);color:#e8eef8;font-size:12.5px;line-height:1.6}',
       '.__md_toastText{color:#dbe8fa}',
       '.__md_menuItem{display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border:none;border-radius:9px;background:transparent;color:#e8eef8;font:inherit;font-size:12.5px;text-align:left;cursor:pointer}',
@@ -896,7 +897,20 @@ window.__ModuleLoader__.load({
               className: '__md_btn __md_btnSoft',
               disabled: state.busy === 'restore',
               onClick: function () { void restoreTrash([entry.trashId]); }
-            }, t('restoreSelected'))
+            }, t('restoreSelected')),
+            h('button', {
+              type: 'button',
+              className: '__md_iconBtn __md_iconBtnDanger',
+              title: '彻底删除这条（不可恢复）',
+              'aria-label': '彻底删除这条',
+              disabled: state.busy === 'purge',
+              onClick: function (event) {
+                event.stopPropagation();
+                openPurgeDialog([entry.trashId]);
+              }
+            }, h('svg', { width: 15, height: 15, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' },
+              h('path', { d: 'M3 4h10M6.5 4V2.8h3V4M4.4 4l.5 9.1h6.2l.5-9.1', stroke: 'currentColor', 'stroke-width': 1.3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })
+            ))
           )
         );
       });
