@@ -311,7 +311,6 @@ window.__ModuleLoader__.load({
         if (!current || current.ids.join('|') !== list.join('|')) return;
         setStore({
           pending: Object.assign({}, current, {
-            filesSkipped: filesSkipped,
             info: rows,
             files: files,
             otherFiles: otherFiles,
