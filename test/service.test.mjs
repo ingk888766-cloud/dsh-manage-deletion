@@ -41,6 +41,7 @@ function makeCtx(rows, options = {}) {
     sizeBytes: row.sizeBytes,
     location: { kind: 'jsonl', path: join(row.dir, 'session.v4.jsonl.zstd') }
   }));
+  const liveIds = new Set([...(options.live || []), ...(options.idleLive || [])]);
   const entity = {
     id: 'ws-1',
     path: join(options.homeRoot || '', 'projects', 'ws-demo'),
@@ -60,11 +61,23 @@ function makeCtx(rows, options = {}) {
       stat: async (id) => snapshots.find((snapshot) => snapshot.header.id === id) || null
     },
     sessions: {
-      list: () => [...state.live].map((id) => ({ id, header: { id } })),
-      get: (id) => (state.live.has(id) ? { id, status: 'running' } : undefined)
+      store: new Map([...liveIds].map((id) => [id, { id, session: { id, header: { id } } }])),
+      detachEntered(entry) {
+        this.store.delete(entry.id);
+      },
+      list: () => [...liveIds].map((id) => ({ id, header: { id } })),
+      get: (id) => (liveIds.has(id) ? { id, status: 'running' } : undefined)
     },
     agents: {
-      get: (id) => (state.live.has(id) ? { id, status: 'running' } : undefined)
+      store: new Map([...liveIds].map((id) => [id, { id, agent: { id, status: 'running' } }])),
+      detachEntered(entry) {
+        this.store.delete(entry.id);
+      },
+      get: (id) => {
+        if (liveIds.has(id) && !(options.idleLive || []).includes(id)) return { id, status: 'running' };
+        if ((options.idleLive || []).includes(id)) return { id, status: 'idle' };
+        return undefined;
+      }
     },
     workspaceRegistry: {
       list: () => [entity],
@@ -112,11 +125,13 @@ function setup(options = {}) {
     sessionFixture(home, workspace, 'session-real00003', { bytes: 300_000, age: 2 }),
     sessionFixture(home, workspace, 'session-live00004', { bytes: 420, age: 1 })
   ];
+  if (options.idleRow) rows.push(sessionFixture(home, workspace, options.idleRow, { bytes: 420, age: 1 }));
   rows[1].header.parentSession = 'session-real00003';
   const built = makeCtx(rows, {
     homeRoot: home,
     titles: { 'session-test00002': '测试', 'session-real00003': '写报告', 'session-blank0001': '' },
-    live: ['session-live00004'],
+    live: options.idleRow ? ['session-live00004', options.idleRow] : ['session-live00004'],
+    idleLive: options.idleRow ? [options.idleRow] : [],
     pinned: ['session-real00003'],
     ...options
   });
@@ -388,4 +403,55 @@ test('trashList reads only the trash index and matches scan counts', async () =>
   assert.equal(list.count, report.trash.count);
   assert.equal(list.entries[0].sessionId, 'session-blank0001');
   assert.ok(list.bytes > 0);
+});
+
+test('trash force-forgets an idle live session so the host stops listing it', async () => {
+  const { home, rows, service, services } = setup({ idleRow: 'session-idle00005' });
+  const id = 'session-idle00005';
+  const row = rows.find((candidate) => candidate.header.id === id);
+  assert.ok(services.sessions.store.has(id), 'session resident before delete');
+  assert.ok(services.agents.store.has(id), 'agent resident before delete');
+
+  const results = await service.trash([id]);
+  assert.equal(results[0].ok, true);
+  assert.equal(results[0].code, 'trashed');
+  assert.deepEqual(results[0].forgotten, ['agent', 'session'], 'host entries released');
+  assert.equal(services.sessions.store.has(id), false, 'live session removed from the host store');
+  assert.equal(services.agents.store.has(id), false, 'agent removed from the host registry');
+  assert.equal(existsSync(row.dir), false, 'log moved to trash');
+  assert.equal(existsSync(join(home, 'manage-deletion', 'trash', results[0].trashId, 'session')), true, 'log is in the trash entry');
+});
+
+test('deleting a ghost that is still resident in host memory forgets it (ungrouped rows)', async () => {
+  const { rows, service, services } = setup({ idleRow: 'session-idle00005' });
+  const id = 'session-idle00005';
+  const row = rows.find((candidate) => candidate.header.id === id);
+  rmSync(row.dir, { recursive: true, force: true });
+
+  const results = await service.trash([id]);
+  assert.equal(results[0].ok, true);
+  assert.equal(results[0].code, 'already-gone');
+  assert.deepEqual(results[0].forgotten, ['agent', 'session'], 'ghost released from host memory');
+  assert.equal(services.sessions.store.has(id), false);
+  assert.equal(services.agents.store.has(id), false);
+});
+
+test('purge forgets a live resident again so trashed rows cannot survive it', async () => {
+  const { service, services } = setup({ idleRow: 'session-idle00005' });
+  const id = 'session-idle00005';
+  const trashed = await service.trash([id]);
+  const trashId = trashed[0].trashId;
+  // Simulate a session deleted by an older version that never forgot it:
+  // the host still holds entries when the user purges the trash row.
+  services.sessions.store.set(id, { id, session: { id } });
+  services.agents.store.set(id, { id, agent: { id } });
+
+  const results = await service.purge([trashId]);
+  assert.equal(results[0].ok, true);
+  assert.equal(results[0].code, 'purged');
+  assert.deepEqual(results[0].forgotten, ['agent', 'session']);
+  assert.equal(services.sessions.store.has(id), false, 'purge clears the live ghost');
+  assert.equal(services.agents.store.has(id), false);
+  const report = await service.scan();
+  assert.equal(report.trash.count, 0);
 });
