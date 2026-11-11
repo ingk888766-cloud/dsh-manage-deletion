@@ -249,6 +249,31 @@ window.__ModuleLoader__.load({
       return told > 0;
     }
 
+    function useStoreSelector(selector, deps) {
+      var initial = selector(store.get());
+      var pair = react.useState(initial);
+      var value = pair[0];
+      var setValue = pair[1];
+      var latest = react.useRef(initial);
+      var selectorRef = react.useRef(selector);
+      selectorRef.current = selector;
+      react.useEffect(function () {
+        // Re-check after mount in case the store changed between render and subscribe.
+        var current = selectorRef.current(store.get());
+        if (current !== latest.current) {
+          latest.current = current;
+          setValue(current);
+        }
+        return store.subscribe(function () {
+          var next = selectorRef.current(store.get());
+          if (next === latest.current) return;
+          latest.current = next;
+          setValue(next);
+        });
+      }, deps || []);
+      return value;
+    }
+
     function useStore() {
       var bump = react.useState(0)[1];
       react.useEffect(function () {
@@ -612,13 +637,14 @@ window.__ModuleLoader__.load({
 
     // ── sidebar row: checkbox ──────────────────────────────────────────────
     function RowCheck(props) {
-      var state = useStore();
-      if (!state.selectMode) return null;
       var id = props.sessionId;
+      var selectMode = useStoreSelector(function (s) { return s.selectMode === true; }, []);
+      if (!selectMode || !id) return null;
+      var checked = useStoreSelector(function (s) { return s.selected[id] === true; }, [id]);
       return h('input', {
         type: 'checkbox',
         className: '__md_check',
-        checked: state.selected[id] === true,
+        checked: checked,
         'aria-label': id,
         onClick: function (event) { event.stopPropagation(); },
         onChange: function (event) { event.stopPropagation(); toggleId(id); }
@@ -629,7 +655,6 @@ window.__ModuleLoader__.load({
     function RowActions(props) {
       var t = props.t;
       var id = props.sessionId;
-      var state = useStore();
       if (!id) return null;
       return h(react.Fragment, null,
         h('button', {
@@ -658,8 +683,7 @@ window.__ModuleLoader__.load({
           }
         }, h('svg', { width: 14, height: 14, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' },
           h('path', { d: 'M3 4h10M6.5 4V2.8h3V4M4.4 4l.5 9.1h6.2l.5-9.1', stroke: 'currentColor', 'stroke-width': 1.3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })
-        )),
-        state.selectMode ? null : null
+        ))
       );
     }
 
@@ -770,53 +794,84 @@ window.__ModuleLoader__.load({
     // slot), so the bar floats just under our own sidebar row instead of
     // taking that seat and hiding the official workspace list.
     function FloatingSelectBar(props) {
-      var state = useStore();
       var t = props.t;
+      // Only the two values this bar renders; the old useStore() made it
+      // re-render on every scan/title/toast write.
+      var selectMode = useStoreSelector(function (s) { return s.selectMode === true; }, []);
+      var selectedCount = useStoreSelector(function (s) {
+        var sel = s.selected || {};
+        var n = 0;
+        for (var key in sel) if (sel[key]) n += 1;
+        return n;
+      }, []);
       var pair = react.useState(null);
       var rect = pair[0];
       var setRect = pair[1];
+      var lastRect = react.useRef(null);
       react.useEffect(function () {
         var alive = true;
+        function apply(next) {
+          var prev = lastRect.current;
+          if (prev && next && prev.left === next.left && prev.top === next.top && prev.width === next.width) return;
+          lastRect.current = next;
+          setRect(next);
+        }
         function measure() {
           if (!alive) return;
           var region = document.querySelector('[class*="regionArea"]');
           if (region) {
             var rbox = region.getBoundingClientRect();
             if (rbox.width > 100) {
-              setRect({ left: rbox.left + 8, top: Math.max(8, rbox.top - 34), width: Math.max(150, rbox.width - 16) });
+              apply({ left: rbox.left + 8, top: Math.max(8, rbox.top - 34), width: Math.max(150, rbox.width - 16) });
               return;
             }
           }
           var anchor = document.querySelector('button[aria-label="' + t('label') + '"]');
           if (anchor) {
             var box = anchor.getBoundingClientRect();
-            setRect({ left: box.left, top: box.bottom + 6, width: Math.max(150, box.width) });
+            apply({ left: box.left, top: box.bottom + 6, width: Math.max(150, box.width) });
             return;
           }
           var col = document.querySelector('[class*="sidebarCol"]');
           if (col) {
             var cbox = col.getBoundingClientRect();
-            setRect({ left: cbox.left + 10, top: cbox.top + 96, width: Math.max(150, cbox.width - 20) });
+            apply({ left: cbox.left + 10, top: cbox.top + 96, width: Math.max(150, cbox.width - 20) });
             return;
           }
-          setRect(null);
+          apply(null);
         }
         measure();
-        var timer = setInterval(measure, 1200);
-        window.addEventListener('resize', measure);
+        var raf = null;
+        function schedule() {
+          if (raf !== null) return;
+          raf = (typeof requestAnimationFrame === 'function' ? requestAnimationFrame : function (fn) { return setTimeout(fn, 16); })(function () {
+            raf = null;
+            measure();
+          });
+        }
+        // No polling while idle: the sidebar only moves on resize/scroll.
+        var timer = selectMode ? setInterval(measure, 1500) : null;
+        window.addEventListener('resize', schedule);
+        window.addEventListener('scroll', schedule, true);
         return function () {
           alive = false;
-          clearInterval(timer);
-          window.removeEventListener('resize', measure);
+          if (timer) clearInterval(timer);
+          if (raf !== null) {
+            if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(raf);
+            else clearTimeout(raf);
+          }
+          window.removeEventListener('resize', schedule);
+          window.removeEventListener('scroll', schedule, true);
         };
-      }, []);
+      }, [selectMode]);
       if (!rect) return null;
 
-      var all = state.scan && state.scan.sessions ? state.scan.sessions : [];
-      var allOn = all.length > 0 && all.every(function (row) { return state.selected[row.id]; });
-      var count = Object.keys(state.selected).length;
+      var snapshot = store.get();
+      var all = snapshot.scan && snapshot.scan.sessions ? snapshot.scan.sessions : [];
+      var allOn = all.length > 0 && all.every(function (row) { return snapshot.selected[row.id]; });
+      var count = selectedCount;
 
-      if (!state.selectMode) {
+      if (!selectMode) {
         return h('div', { className: '__md_bar', style: { position: 'fixed', left: rect.left, top: rect.top, width: rect.width, zIndex: 45 } },
           h('button', {
             type: 'button',
@@ -1149,7 +1204,17 @@ window.__ModuleLoader__.load({
       try {
         var sessions = ctx.get('sessions');
         if (sessions && sessions.list && typeof sessions.list.subscribe === 'function') {
-          ctx.effect(function () { return sessions.list.subscribe(function () { readSessionRows(ctx); }); }, 'dsh-manage-deletion: session titles');
+          var titleTimer = null;
+          var dispose = sessions.list.subscribe(function () {
+            // The list emits on every activity tick; rebuilding the title map
+            // each time is what made a page load feel sticky with 900 sessions.
+            if (titleTimer) return;
+            titleTimer = setTimeout(function () {
+              titleTimer = null;
+              readSessionRows(ctx);
+            }, 250);
+          });
+          ctx.effect(function () { return function () { if (titleTimer) clearTimeout(titleTimer); dispose(); }; }, 'dsh-manage-deletion: session titles');
         }
       } catch (error) { /* titles fall back to the host scan */ }
 
@@ -1165,14 +1230,12 @@ window.__ModuleLoader__.load({
 
       ctx.slots.inject('sidebar.session.row.leading', function () {
         return ctx.slots.register({ name: 'sidebar.session.row.leading', id: 'manage-deletion.check', order: 0 }, function CheckHost(props) {
-          useLocale(ctx.locale);
           return h(RowCheck, { sessionId: props.sessionId });
         });
       });
 
       ctx.slots.inject('sidebar.workspaces.session.row.action', function () {
         return ctx.slots.register({ name: 'sidebar.workspaces.session.row.action', id: 'manage-deletion.delete', order: 0, locale: NS }, function ActionHost(props) {
-          useLocale(ctx.locale);
           return h(RowActions, { sessionId: props.sessionId, t: t });
         });
       });
