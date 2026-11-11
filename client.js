@@ -4,8 +4,7 @@
  * Slots used (all list/keyed seats that the host bundles declare):
  *   main                                → the manager page
  *   sidebar.panellist (id, order, label) → the「删除管理」row
- *   sidebar.session.row.leading          → checkbox while selecting
- *   sidebar.workspaces.session.row.action→ hover delete + select toggle
+ *   sidebar.workspaces.session.row.action→ left checkbox while selecting, else hover actions
  *   shell.overlay                        → the confirm dialog
  *
  * `sidebar.workspaces` is deliberately NOT used: it is a single-occupant seat,
@@ -281,7 +280,14 @@ window.__ModuleLoader__.load({
       }, []);
       return store.get();
     }
-    function setStore(patch) { store.set(patch); }
+    function setStore(patch) {
+      store.set(patch);
+      // The host hides quick actions unless a row is hovered. Selection is a
+      // persistent mode, so reflect it on the document for the row CSS rules.
+      if (typeof document !== 'undefined' && document.body && document.body.classList) {
+        document.body.classList.toggle('__md_selecting', store.get().selectMode === true);
+      }
+    }
 
     function fmtBytes(n) {
       var v = typeof n === 'number' && isFinite(n) ? n : 0;
@@ -608,6 +614,11 @@ window.__ModuleLoader__.load({
       '.__md_err{font-size:12px;color:#efa9a3;background:rgba(44,26,28,.92);border:1px solid #6b3a3a;border-radius:14px;padding:10px 14px;white-space:pre-wrap}',
       '.__md_hint{font-size:11px;color:var(--md-ink2)}',
       '.__md_check{accent-color:var(--md-accent2);cursor:pointer;width:16px;height:16px;flex:none}',
+      'body.__md_selecting [class*="sessionRow"]{position:relative}',
+      'body.__md_selecting [class*="sessionRow"] [class*="rowActions"]{display:inline-flex!important}',
+      'body.__md_selecting [class*="sessionRow"] [class*="rowQuickActions"]>[data-slot]:has(.__md_rowSelect){display:contents!important}',
+      'body.__md_selecting [class*="sessionRow"] [class*="rowQuickActions"]>[data-slot]>.__md_rowSelect{display:block!important}',
+      'body.__md_selecting .__md_rowSelect{position:absolute;left:8px;top:50%;transform:translateY(-50%);z-index:2;appearance:auto;opacity:1;visibility:visible}',
       '.__md_iconBtn{border:none;background:rgba(32,40,54,.85);color:#8fa4c0;cursor:pointer;padding:6px;border-radius:11px;display:inline-flex;align-items:center;transition:color .18s,background .18s}',
       '.__md_iconBtn:hover{color:#f0a8a2;background:rgba(60,32,34,.9)}',
       '.__md_iconBtnDanger{color:#d98b84}',
@@ -635,27 +646,24 @@ window.__ModuleLoader__.load({
       return tag;
     }
 
-    // ── sidebar row: checkbox ──────────────────────────────────────────────
-    function RowCheck(props) {
+    // ── sidebar row: selection and hover actions ──────────────────────────
+    // The leading slot is absent on rows with a status dot and on archived
+    // rows. The action slot exists on every nonblank row; keep its checkbox
+    // visible at the left even when the host hides hover actions.
+    function RowActions(props) {
+      var t = props.t;
       var id = props.sessionId;
       var selectMode = useStoreSelector(function (s) { return s.selectMode === true; }, []);
-      if (!selectMode || !id) return null;
       var checked = useStoreSelector(function (s) { return s.selected[id] === true; }, [id]);
-      return h('input', {
+      if (!id) return null;
+      if (selectMode) return h('input', {
         type: 'checkbox',
-        className: '__md_check',
+        className: '__md_check __md_rowSelect',
         checked: checked,
         'aria-label': id,
         onClick: function (event) { event.stopPropagation(); },
         onChange: function (event) { event.stopPropagation(); toggleId(id); }
       });
-    }
-
-    // ── sidebar row: hover actions (select toggle + delete) ────────────────
-    function RowActions(props) {
-      var t = props.t;
-      var id = props.sessionId;
-      if (!id) return null;
       return h(react.Fragment, null,
         h('button', {
           type: 'button',
@@ -1197,7 +1205,10 @@ window.__ModuleLoader__.load({
 
     function apply(ctx) {
       var styleTag = installStyles();
-      ctx.effect(function () { return function () { try { styleTag.remove(); } catch (error) { /* ignore */ } }; }, 'dsh-manage-deletion: styles');
+      ctx.effect(function () { return function () {
+        try { if (document.body && document.body.classList) document.body.classList.remove('__md_selecting'); } catch (error) { /* ignore */ }
+        try { styleTag.remove(); } catch (error) { /* ignore */ }
+      }; }, 'dsh-manage-deletion: styles');
       ctx.effect(function () { return ctx.locale.register(NS, { zh: zh, en: en }); }, 'dsh-manage-deletion: dictionaries');
       var t = ctx.locale.bind(NS);
 
@@ -1225,12 +1236,6 @@ window.__ModuleLoader__.load({
       ctx.slots.inject('main', function () {
         return ctx.slots.register({ name: 'main', key: PANEL_ID, locale: NS }, function MainPage() {
           return h(Page, { t: t, ctx: ctx, locale: ctx.locale });
-        });
-      });
-
-      ctx.slots.inject('sidebar.session.row.leading', function () {
-        return ctx.slots.register({ name: 'sidebar.session.row.leading', id: 'manage-deletion.check', order: 0 }, function CheckHost(props) {
-          return h(RowCheck, { sessionId: props.sessionId });
         });
       });
 

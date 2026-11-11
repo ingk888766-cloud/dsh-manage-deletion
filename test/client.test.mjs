@@ -23,11 +23,17 @@ function loadBundle() {
       }
     }
   };
+  const bodyClasses = new Set();
   const document = {
     createElement() {
       return { setAttribute() {}, textContent: '', remove() {} };
     },
-    head: { appendChild() {} }
+    head: { appendChild() {} },
+    body: { classList: {
+      toggle(name, enabled) { if (enabled) bodyClasses.add(name); else bodyClasses.delete(name); },
+      remove(name) { bodyClasses.delete(name); },
+      contains(name) { return bodyClasses.has(name); }
+    } }
   };
   // eslint-disable-next-line no-new-func
   new Function('window', 'document', source)(window, document);
@@ -40,13 +46,14 @@ function loadBundle() {
     useState(initial) {
       return [typeof initial === 'function' ? initial() : initial, () => {}];
     },
-    useEffect() {}
+    useEffect() {},
+    useRef(initial) { return { current: initial }; }
   };
   const exports = captured.factory((name) => {
     assert.ok(name === 'react', `unexpected require(${name})`);
     return react;
   });
-  return { definition: captured, exports, react };
+  return { definition: captured, exports, react, document };
 }
 
 function makeCtx() {
@@ -109,8 +116,8 @@ test('apply registers the sidebar row, main page, row hooks and dialog', () => {
   assert.equal(byName('main')[0].definition.key, 'manage-deletion');
 
   assert.equal(byName('sidebar.workspaces').length, 0, 'never takes the workspace list seat');
-  assert.equal(byName('sidebar.session.row.leading').length, 1, 'row checkbox');
-  assert.equal(byName('sidebar.workspaces.session.row.action').length, 1, 'row delete button');
+  assert.equal(byName('sidebar.session.row.leading').length, 0, 'status-dependent leading slot is not used for selection');
+  assert.equal(byName('sidebar.workspaces.session.row.action').length, 1, 'row selection/delete actions');
   assert.equal(byName('sidebar.workspaces.session.menu.item').length, 1, 'context-menu delete');
   assert.equal(byName('shell.overlay').length, 3, 'confirm dialog + select bar + toast');
 });
@@ -136,6 +143,57 @@ test('the dialog host renders nothing until a delete is requested', () => {
   const element = overlay.component({});
   const tree = element.type(element.props);
   assert.equal(tree, null);
+});
+
+test('row checkbox keeps hook order and appears after entering multi-select', () => {
+  const { exports, react, document } = loadBundle();
+  const { ctx, registrations } = makeCtx();
+  exports.apply(ctx);
+
+  const states = [];
+  let cursor = 0;
+  let expectedHooks = null;
+  const subscriptions = [];
+  react.useState = (initial) => {
+    const index = cursor++;
+    if (!(index in states)) states[index] = typeof initial === 'function' ? initial() : initial;
+    return [states[index], (value) => {
+      states[index] = typeof value === 'function' ? value(states[index]) : value;
+    }];
+  };
+  react.useRef = (initial) => {
+    const index = cursor++;
+    if (!(index in states)) states[index] = { current: initial };
+    return states[index];
+  };
+  react.useEffect = (effect) => { cursor++; subscriptions.push(effect); };
+  function render(component, props) {
+    cursor = 0;
+    subscriptions.length = 0;
+    const result = component(props);
+    if (expectedHooks !== null) assert.equal(cursor, expectedHooks, 'React hook count must not change across select-mode transition');
+    expectedHooks = cursor;
+    subscriptions.forEach((effect) => effect());
+    return result;
+  }
+
+  const action = registrations.find((entry) => entry.definition.name === 'sidebar.workspaces.session.row.action');
+  const row = action.component({ sessionId: 'session-x' });
+  const idle = render(row.type, row.props);
+  assert.equal(idle.type, 'fragment', 'hover actions are shown before select mode');
+  idle.children[0].props.onClick({ preventDefault() {}, stopPropagation() {} });
+  assert.equal(document.body.classList.contains('__md_selecting'), true, 'multi-select forces the checkbox visible on host session rows');
+  const checkbox = render(row.type, row.props);
+  assert.equal(checkbox.type, 'input');
+  assert.equal(checkbox.props.type, 'checkbox');
+  assert.equal(checkbox.props['aria-label'], 'session-x');
+  assert.match(checkbox.props.className, /__md_rowSelect/);
+});
+
+test('selection CSS overrides host hover-only quick actions and anchors checkbox on the left', () => {
+  assert.match(source, /body\.__md_selecting \[class\*="sessionRow"\] \[class\*="rowActions"\]\{display:inline-flex!important\}/);
+  assert.match(source, /\[data-slot\]:has\(\.__md_rowSelect\)\{display:contents!important\}/);
+  assert.match(source, /\.__md_rowSelect\{position:absolute;left:8px;top:50%/);
 });
 
 test('the row delete button renders a button with an accessible label', () => {
