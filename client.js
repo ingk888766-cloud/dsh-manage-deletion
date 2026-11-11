@@ -181,6 +181,39 @@ window.__ModuleLoader__.load({
       setTimeout(function () { resyncSessions(ctx); }, 1500);
     }
 
+    function dropRowsLocally(sessions, ids) {
+      // Same call the UI makes when a session scope is discarded: it removes the
+      // row from the client list without touching the archive set. Uses only
+      // public-ish handles (list snapshot + manager.drop), and no-ops safely.
+      var dropped = 0;
+      var manager = sessions && sessions.manager;
+      if (!manager || typeof manager.drop !== 'function') return dropped;
+      var byId = {};
+      try {
+        byId = (sessions.list.getSnapshot() || {}).byId || {};
+      } catch (error) {
+        return dropped;
+      }
+      for (var i = 0; i < ids.length; i += 1) {
+        var id = ids[i];
+        try {
+          var resident = null;
+          if (manager.sessions && typeof manager.sessions.get === 'function') resident = manager.sessions.get(id);
+          if (!resident && byId[id]) resident = byId[id].session;
+          if (resident) {
+            void manager.drop(id, resident);
+            dropped += 1;
+            continue;
+          }
+          if (typeof sessions.handleSessionRemoved === 'function') {
+            sessions.handleSessionRemoved(id);
+            dropped += 1;
+          }
+        } catch (error) { /* keep going: one bad id must not block the rest */ }
+      }
+      return dropped;
+    }
+
     function resyncSessions(ctx, removedIds) {
       var sessions = null;
       try {
@@ -190,6 +223,9 @@ window.__ModuleLoader__.load({
       }
       if (!sessions) return false;
       var told = 0;
+      if (Array.isArray(removedIds) && removedIds.length > 0) {
+        told = dropRowsLocally(sessions, removedIds);
+      }
       // The same hook the host uses when it broadcasts a removal: dropping the
       // row locally is what makes the sidebar update without a restart.
       if (Array.isArray(removedIds) && typeof sessions.handleSessionRemoved === 'function') {
@@ -416,7 +452,7 @@ window.__ModuleLoader__.load({
             text: (bad.length > 0
               ? interp('删除 {ok} 个，失败 {n} 个：', { ok: ok.length, n: bad.length }) + (bad[0].message || bad[0].code || '')
               : interp('已移入回收站 {n} 个。', { n: ok.length }))
-              + (synced ? '（侧栏列表已请求同步）' : '（宿主没有提供列表刷新接口，需刷新页面）')
+              + (synced ? '（已从列表移除 ' + removedIds.length + ' 行）' : '（未找到可用的列表接口，请刷新页面）')
           }
         });
       } catch (error) {

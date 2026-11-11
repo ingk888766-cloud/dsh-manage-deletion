@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.12] — 2026-11-11
+
+### Changed
+
+- 删除后隐藏改用客户端自己的会话管理器：`sessions.manager.drop(id, session)`（UI 丢弃会话时的同一调用），**不写入归档集**。
+- 取不到驻留会话时回退到 `handleSessionRemoved(id)`；两种都不可用才提示刷新页面。
+- 提示条写出实际移除的行数。
+
 ## [1.3.11] — 2026-11-11
 
 ### Fixed
