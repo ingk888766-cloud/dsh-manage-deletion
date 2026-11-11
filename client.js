@@ -175,19 +175,42 @@ window.__ModuleLoader__.load({
       }
     }
 
-    function resyncSessions(ctx) {
+    function resyncSessionsSoon(ctx) {
+      // The host list is pushed asynchronously; a second ask a moment later
+      // catches the update when the first one landed too early.
+      setTimeout(function () { resyncSessions(ctx); }, 1500);
+    }
+
+    function resyncSessions(ctx, removedIds) {
+      var sessions = null;
       try {
-        var sessions = ctx.get('sessions');
-        if (sessions && typeof sessions.refresh === 'function') {
+        sessions = ctx.get('sessions');
+      } catch (error) {
+        return false;
+      }
+      if (!sessions) return false;
+      var told = 0;
+      // The same hook the host uses when it broadcasts a removal: dropping the
+      // row locally is what makes the sidebar update without a restart.
+      if (Array.isArray(removedIds) && typeof sessions.handleSessionRemoved === 'function') {
+        for (var i = 0; i < removedIds.length; i += 1) {
+          try {
+            sessions.handleSessionRemoved(removedIds[i]);
+            told += 1;
+          } catch (error) { /* older client: fall through to refresh */ }
+        }
+      }
+      try {
+        if (typeof sessions.refresh === 'function') {
           void sessions.refresh();
           return true;
         }
-        if (sessions && typeof sessions.refreshProjections === 'function') {
+        if (typeof sessions.refreshProjections === 'function') {
           void sessions.refreshProjections();
-          return true;
+          return told > 0;
         }
-      } catch (error) { /* older hosts: the reload button stays the fallback */ }
-      return false;
+      } catch (error) { /* the reload button stays the fallback */ }
+      return told > 0;
     }
 
     function useStore() {
@@ -383,8 +406,19 @@ window.__ModuleLoader__.load({
             })
           });
         }
-        resyncSessions(ctx);
+        var removedIds = ok.map(function (row) { return row.id; });
+        var synced = resyncSessions(ctx, removedIds);
+        if (synced) setTimeout(function () { resyncSessions(ctx, removedIds); }, 1200);
         await refreshTrash();
+        setStore({
+          toast: {
+            kind: bad.length > 0 ? 'warn' : 'ok',
+            text: (bad.length > 0
+              ? interp('删除 {ok} 个，失败 {n} 个：', { ok: ok.length, n: bad.length }) + (bad[0].message || bad[0].code || '')
+              : interp('已移入回收站 {n} 个。', { n: ok.length }))
+              + (synced ? '（侧栏列表已请求同步）' : '（宿主没有提供列表刷新接口，需刷新页面）')
+          }
+        });
       } catch (error) {
         setStore({ busy: '', error: String(error && error.message ? error.message : error) });
       }
@@ -425,6 +459,7 @@ window.__ModuleLoader__.load({
         });
         setTimeout(function () { setStore({ toast: null }); }, 8000);
         await refreshTrash();
+        resyncSessions(ctx, results.filter(function (row) { return row.ok; }).map(function (row) { return row.sessionId; }).filter(Boolean));
       } catch (error) {
         setStore({ busy: '', error: String(error && error.message ? error.message : error) });
       }
